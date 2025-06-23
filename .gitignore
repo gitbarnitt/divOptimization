@@ -2,9 +2,3 @@
 .Rhistory
 .RData
 .Ruserdata
-.DS_Store
-_targets/
-outputs/
-*.html
-*.pdf
-*.zip
