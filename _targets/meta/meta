@@ -1,0 +1,11 @@
+name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
+plot_detection_prob|function|56127c6a30c3c150
+fit_gjam_trend_model|function|5e1e1acf04bf0b04
+load_neon_data|function|a580c06109c89e72
+.Random.seed|object|3b1f12d63cc7b99e
+render_report|function|ef0cf7519b682128
+fit_gjam_model|function|c05de0392508dc32
+estimate_detection_prob|function|675df9b47dd8c9d9
+simulate_change|function|53234202e59866b2
+neon_data|stem|2c2e5d8364ad5f3b|342993f5809521e0|fa530192b9621df7|-1585856458||t20263.8910867272s|s8014b|8014|rds|local|vector|||1.68|package ‘gjam’ was built under R version 4.4.2|
+report|stem||dc52219448d431da|0364455eae4080e3|787668912||t20263.8911287861s||0|file|local|vector|||2.33||cannot open the connection

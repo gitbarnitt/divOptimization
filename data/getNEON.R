@@ -91,3 +91,14 @@ str(div_1m2Data)
 saveRDS(div_1m2Data, 'C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/code/neon-gjam-targets/data/plant_data.rds')
 
 
+subsetData <- readRDS('C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/project/data/plant_data.rds')
+
+subsetData <- subsetData %>%
+  filter(siteID == "OSBS", year %in% c(2022, 2023, 2024)) %>%
+  distinct(plotID) %>%
+  slice_head(n = 5) %>%
+  inner_join(subsetData, by = "plotID")
+
+saveRDS(subsetData, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
+
+

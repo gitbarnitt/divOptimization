@@ -2,12 +2,15 @@
 title: "Detection Probability Report"
 output: html_document
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(dplyr)
 library(tibble)
+library(targets)
+
+# Load the detection_summary target from the pipeline
+tar_load("detection_summary")
 ```
 
 ## Overview
@@ -16,7 +19,7 @@ This report summarizes the detection probability estimates for plant species cov
 
 ## Detection Summary Table
 
-```{r}
+```{r load detection sum table}
 # Load detection summary if not already available
 if (!exists("detection_summary")) {
   detection_summary <- readRDS("outputs/detection_summary.rds")
@@ -27,10 +30,8 @@ head(detection_summary)
 
 ## Plot: Detection Probability by Species and Subsample
 
-```{r}
-if (!exists("detection_summary")) {
-  detection_summary <- readRDS("outputs/detection_summary.rds")
-}
+```{r plot detection prob}
+
 
 # Basic plot by species and sample size
 ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
@@ -46,7 +47,7 @@ ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = sp
 
 ## Plot: Detection Probability Across Sites
 
-```{r}
+```{r detection prob sites}
 # Site-level average detection
 detection_summary %>%
   group_by(siteID, subsample_size) %>%
