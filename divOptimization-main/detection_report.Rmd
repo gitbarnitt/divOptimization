@@ -1,28 +1,69 @@
 ---
-title: "Detection Probability Sensitivity Analysis"
+title: "Detection Probability Report"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(dplyr)
-library(tidyr)
-library(readr)
-library(knitr)
-library(kableExtra)
-source("R/plot_detection_prob.R")
+library(tibble)
 ```
 
-# Overview
+## Overview
 
-This report summarizes the detection probability estimates for species at NEON sites under a simulated 20% abundance increase.
+This report summarizes the detection probability estimates for plant species cover changes across NEON sites using GJAM-based simulations.
+
+## Detection Summary Table
 
 ```{r}
-plot_detection_prob(detection_summary)
+# Load detection summary if not already available
+if (!exists("detection_summary")) {
+  detection_summary <- readRDS("outputs/detection_summary.rds")
+}
 
+head(detection_summary)
 ```
+
+## Plot: Detection Probability by Species and Subsample
 
 ```{r}
-kable(det_summary, digits = 3, caption = "Detection Probabilities with Credible Intervals") %>%
-  kable_styling(full_width = FALSE)
+if (!exists("detection_summary")) {
+  detection_summary <- readRDS("outputs/detection_summary.rds")
+}
+
+# Basic plot by species and sample size
+ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
+  geom_line() +
+  facet_wrap(~ siteID) +
+  labs(
+    title = "Detection Probability by Subsample Size",
+    x = "Subsample Size (Number of Plots)",
+    y = "Probability of Detecting 20% Change"
+  ) +
+  theme_minimal()
 ```
+
+## Plot: Detection Probability Across Sites
+
+```{r}
+# Site-level average detection
+detection_summary %>%
+  group_by(siteID, subsample_size) %>%
+  summarize(mean_prob = mean(detection_prob, na.rm = TRUE)) %>%
+  ggplot(aes(x = subsample_size, y = mean_prob)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Average Detection Probability Across Sites",
+    x = "Subsample Size",
+    y = "Average Detection Probability"
+  ) +
+  theme_minimal()
+```
+
+## Interpretation and Decision Support
+
+- This report can guide decisions on optimal sampling effort (number of plots) to detect 20% change in percent cover for species at NEON sites.
+- Smaller sample sizes may be acceptable at sites with higher detection power.
+- Consider additional simulations for edge cases or rare taxa.
