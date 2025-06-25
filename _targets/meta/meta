@@ -1,11 +1,16 @@
 name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
-plot_detection_prob|function|56127c6a30c3c150
 fit_gjam_trend_model|function|5e1e1acf04bf0b04
+plot_detection_prob|function|56127c6a30c3c150
 load_neon_data|function|a580c06109c89e72
-.Random.seed|object|3b1f12d63cc7b99e
-render_report|function|ef0cf7519b682128
-fit_gjam_model|function|c05de0392508dc32
+.Random.seed|object|74b37bdfa1599e03
+render_report|function|8a0378361c4caf53
 estimate_detection_prob|function|675df9b47dd8c9d9
+fit_gjam_model|function|56b108e4c048ad19
 simulate_change|function|53234202e59866b2
-neon_data|stem|2c2e5d8364ad5f3b|342993f5809521e0|fa530192b9621df7|-1585856458||t20263.8910867272s|s8014b|8014|rds|local|vector|||1.68|package ‘gjam’ was built under R version 4.4.2|
-report|stem||dc52219448d431da|0364455eae4080e3|787668912||t20263.8911287861s||0|file|local|vector|||2.33||cannot open the connection
+neon_data|stem|2c2e5d8364ad5f3b|342993f5809521e0|fa530192b9621df7|-1585856458||t20264.0147964846s|s8014b|8014|rds|local|vector|||0.89|package ‘gjam’ was built under R version 4.4.2|
+site_subsamples|stem|417382aab70fc7ca|aed314a5b3afb47c|a5293e20e63c4dcc|1530567747||t20264.0148010787s|s8035b|8035|rds|local|vector|||0||
+gjam_fits|stem|d134974ff85af39f|0c2e828bdaad6776|5d7b8204c7866a5f|-1179186232||t20264.0148059175s|s78b|78|rds|local|vector|||0.21||
+simulated_fits|stem|d134974ff85af39f|609385cb440b7c00|8e0a9b54adc76d08|-57155518||t20264.0148085112s|s78b|78|rds|local|vector|||0.03|Empty or failed GJAM fit.|
+detection_summary|stem|24a17e5e8207b325|d9f5dd9b593b928d|dbf21bd437616b67|-335726898||t20264.0148101196s|s116b|116|rds|local|vector|||0.01||
+detection_summary_file|stem|24a17e5e8207b325|0119607547d0a0aa|e7bc85dfe1db66fb|-625096152|outputs/detection_summary.rds|t20264.0148121813s|s116b|116|file|local|vector|||0||
+report|stem|88db886d1fcaf75e|ee88f706bbf649cb|d06880279115015e|787668912|outputs/detection_report.html|t20264.0148711073s|s626310b|626310|file|local|vector|||5.76||

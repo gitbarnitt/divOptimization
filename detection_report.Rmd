@@ -2,15 +2,12 @@
 title: "Detection Probability Report"
 output: html_document
 ---
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
 library(dplyr)
 library(tibble)
-library(targets)
-
-# Load the detection_summary target from the pipeline
-tar_load("detection_summary")
 ```
 
 ## Overview
@@ -19,48 +16,52 @@ This report summarizes the detection probability estimates for plant species cov
 
 ## Detection Summary Table
 
-```{r load detection sum table}
-# Load detection summary if not already available
-if (!exists("detection_summary")) {
+```{r load-detection-summary-table}
+if (file.exists("outputs/detection_summary.rds")) {
   detection_summary <- readRDS("outputs/detection_summary.rds")
+  head(detection_summary)
+} else {
+  cat("Detection summary file not found.")
 }
-
-head(detection_summary)
 ```
 
 ## Plot: Detection Probability by Species and Subsample
 
-```{r plot detection prob}
-
-
-# Basic plot by species and sample size
-ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
-  geom_line() +
-  facet_wrap(~ siteID) +
-  labs(
-    title = "Detection Probability by Subsample Size",
-    x = "Subsample Size (Number of Plots)",
-    y = "Probability of Detecting 20% Change"
-  ) +
-  theme_minimal()
+```{r detection-prob-by-species}
+if (exists("detection_summary") && nrow(detection_summary) > 0) {
+  ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
+    geom_line() +
+    facet_wrap(~ siteID) +
+    labs(
+      title = "Detection Probability by Subsample Size",
+      x = "Subsample Size (Number of Plots)",
+      y = "Probability of Detecting 20% Change"
+    ) +
+    theme_minimal()
+} else {
+  cat("No detection data available to plot.")
+}
 ```
 
 ## Plot: Detection Probability Across Sites
 
-```{r detection prob sites}
-# Site-level average detection
-detection_summary %>%
-  group_by(siteID, subsample_size) %>%
-  summarize(mean_prob = mean(detection_prob, na.rm = TRUE)) %>%
-  ggplot(aes(x = subsample_size, y = mean_prob)) +
-  geom_line() +
-  geom_point() +
-  labs(
-    title = "Average Detection Probability Across Sites",
-    x = "Subsample Size",
-    y = "Average Detection Probability"
-  ) +
-  theme_minimal()
+```{r detection-prob-sites}
+if (exists("detection_summary") && nrow(detection_summary) > 0) {
+  detection_summary %>%
+    group_by(siteID, subsample_size) %>%
+    summarize(mean_prob = mean(detection_prob, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = subsample_size, y = mean_prob)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Average Detection Probability Across Sites",
+      x = "Subsample Size",
+      y = "Average Detection Probability"
+    ) +
+    theme_minimal()
+} else {
+  cat("No detection data available to summarize.")
+}
 ```
 
 ## Interpretation and Decision Support

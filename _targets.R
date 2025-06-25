@@ -6,9 +6,9 @@ library(tarchetypes)
 # Source all R scripts in the R/ folder
 lapply(list.files("R", full.names = TRUE, pattern = "\\.R$"), source)
 
-# Set global options for the pipeline
+# Set global packages used in targets
 tar_option_set(
-  packages = c("dplyr", "tidyr", "gjam", "purrr", "ggplot2", "tibble", "readr")
+  packages = c("dplyr", "tidyr", "purrr", "gjam", "ggplot2", "readr", "tibble")
 )
 
 # Define the pipeline
@@ -17,14 +17,17 @@ list(
     neon_data,
     load_neon_data("data/plant_data.rds")
   ),
+  
   tar_target(
     site_subsamples,
     split(neon_data, neon_data$siteID)
   ),
+  
   tar_target(
     gjam_fits,
     lapply(site_subsamples, fit_gjam_model)
   ),
+  
   tar_target(
     simulated_fits,
     lapply(gjam_fits, simulate_change)
@@ -47,7 +50,7 @@ list(
   
   tar_target(
     report,
-    render_report(),
+    render_report(detection_summary_file),
     format = "file"
   )
 )
