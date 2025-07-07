@@ -1,16 +1,32 @@
 name|type|data|command|depend|seed|path|time|size|bytes|format|repository|iteration|parent|children|seconds|warnings|error
-fit_gjam_trend_model|function|5e1e1acf04bf0b04
+div_identificationHistory|object|b734c564ae32f4f4
+div_geneticarchive|object|df01260414c616de
+categoricalCodes_10058|object|efd183b55564cb1a
+sites|object|8c6fbd74370fcd9b
 plot_detection_prob|function|56127c6a30c3c150
+fit_gjam_trend_model|function|5e1e1acf04bf0b04
+div_10m2Data100m2Data|object|666c3a4ba1e33466
+summary|object|cde245f5ad306cc5
+presDataProductID|object|d588136187a04b84
 load_neon_data|function|a580c06109c89e72
-.Random.seed|object|74b37bdfa1599e03
+div_voucher|object|e9859eb217f0ab17
+validation_10058|object|31df905f450d1c52
+allDiv|object|f3a8e73536d7473d
+.Random.seed|object|3b1f12d63cc7b99e
+readme_10058|object|901fdafe59abcb03
+div_morphospecies|object|fbc2f6d167e3ef88
+citation_10058_RELEASE-2025|object|ae529b60e27a040a
+div_1m2Data|object|5222c45e0e0cc2bf
 render_report|function|8a0378361c4caf53
+variables_10058|object|ed7d2d187c325a84
+fit_gjam_model|function|a6b3c2b3bd333bdb
 estimate_detection_prob|function|675df9b47dd8c9d9
-fit_gjam_model|function|56b108e4c048ad19
+issueLog_10058|object|1fd587087890d761
 simulate_change|function|53234202e59866b2
-neon_data|stem|2c2e5d8364ad5f3b|342993f5809521e0|fa530192b9621df7|-1585856458||t20264.0147964846s|s8014b|8014|rds|local|vector|||0.89|package ‘gjam’ was built under R version 4.4.2|
-site_subsamples|stem|417382aab70fc7ca|aed314a5b3afb47c|a5293e20e63c4dcc|1530567747||t20264.0148010787s|s8035b|8035|rds|local|vector|||0||
-gjam_fits|stem|d134974ff85af39f|0c2e828bdaad6776|5d7b8204c7866a5f|-1179186232||t20264.0148059175s|s78b|78|rds|local|vector|||0.21||
-simulated_fits|stem|d134974ff85af39f|609385cb440b7c00|8e0a9b54adc76d08|-57155518||t20264.0148085112s|s78b|78|rds|local|vector|||0.03|Empty or failed GJAM fit.|
-detection_summary|stem|24a17e5e8207b325|d9f5dd9b593b928d|dbf21bd437616b67|-335726898||t20264.0148101196s|s116b|116|rds|local|vector|||0.01||
-detection_summary_file|stem|24a17e5e8207b325|0119607547d0a0aa|e7bc85dfe1db66fb|-625096152|outputs/detection_summary.rds|t20264.0148121813s|s116b|116|file|local|vector|||0||
-report|stem|88db886d1fcaf75e|ee88f706bbf649cb|d06880279115015e|787668912|outputs/detection_report.html|t20264.0148711073s|s626310b|626310|file|local|vector|||5.76||
+neon_data|stem|581cde48f044e709|342993f5809521e0|fa530192b9621df7|-1585856458||t20264.0963377252s|s133246b|133246|rds|local|vector|||3|package ‘gjam’ was built under R version 4.4.2|
+site_subsamples|stem|b422b6f3a1af67b0|aed314a5b3afb47c|415a2df7cb725cb1|1530567747||t20264.0963448925s|s139652b|139652|rds|local|vector|||0||
+gjam_fits|stem|5c032dfc0a1b66d9|0c2e828bdaad6776|eb63622d0344dfa5|-1179186232||t20264.096355681s|s93b|93|rds|local|vector|||0.52||
+simulated_fits|stem|5c032dfc0a1b66d9|609385cb440b7c00|31408017375dd19a|-57155518||t20264.0963625764s|s93b|93|rds|local|vector|||0.01|Empty or failed GJAM fit.. Empty or failed GJAM fit.. Empty or failed GJAM fit.|
+detection_summary|stem|24a17e5e8207b325|d9f5dd9b593b928d|b702490bff6f156f|-335726898||t20264.0963646147s|s116b|116|rds|local|vector|||0.11||
+detection_summary_file|stem|24a17e5e8207b325|0119607547d0a0aa|e7bc85dfe1db66fb|-625096152|outputs/detection_summary.rds|t20264.0963661466s|s116b|116|file|local|vector|||0||
+report|stem|88db886d1fcaf75e|ee88f706bbf649cb|d06880279115015e|787668912|outputs/detection_report.html|t20264.0964144484s|s626310b|626310|file|local|vector|||4.83||

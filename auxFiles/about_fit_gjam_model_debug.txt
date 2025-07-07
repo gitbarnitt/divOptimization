@@ -1,0 +1,21 @@
+Source it in your _targets.R:
+
+r
+Copy
+source("R/fit_gjam_model_debug.R")
+Use interactively in your console:
+
+r
+Copy
+# Example for interactive debugging
+debug_fit <- fit_gjam_model_debug(site_subsamples[["JERC"]], inspect = TRUE)
+Let me know if you’d like help wrapping this into a tar_target() for on-demand debugging or validating one specific site. 
+
+
+
+
+
+
+
+Ask ChatGPT
+

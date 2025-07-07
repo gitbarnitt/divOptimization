@@ -1,0 +1,71 @@
+
+# GJAM NEON Plant Data Modeling Project Summary
+
+## Project Overview
+This project uses NEON plant cover data to fit GJAM (Generalized Joint Attribute Modeling) models by site. The workflow is built using the `targets` package in R and is structured to handle data loading, model fitting, simulation of change, and posterior analysis of detection probability.
+
+### Core Workflow Stages
+1. **Data Loading (`load_neon_data`)**
+   - Loads pre-processed NEON plant data from `data/plant_data.rds`.
+
+2. **Data Subsetting (`site_subsamples`)**
+   - Splits the full dataset by `siteID`.
+
+3. **Model Fitting (`fit_gjam_model`)**
+   - Fits a GJAM model for each site using species cover as response and year + NLCD class as predictors.
+   - Includes error handling for missing data, insufficient data, NA values, non-numeric types, and all-zero species.
+
+4. **Simulation (`simulate_change`)**
+   - Perturbs inputs and refits GJAM to test sensitivity and model stability (via percent change in species cover).
+
+5. **Detection Summary (`estimate_detection_prob`)**
+   - Estimates the posterior probability that a 20% change in species cover would be detectable.
+
+6. **Reporting (`render_report`)**
+   - Generates a summary report from the outputs using an `.Rmd` file.
+
+---
+
+## Current Issue
+The model fails with "type code error Qtype code error..." for most sites. This suggests a likely problem in the response matrix (`ydata`) or `typeNames` list passed to `gjam()`.
+
+---
+
+## Key Functions
+### fit_gjam_model
+- Validates data (enough observations, multiple species, no NAs).
+- Uses `pivot_wider()` to make a site × species matrix.
+- Filters out all-zero species and ensures numeric matrix.
+- Constructs a `model_list` for `gjam()`.
+
+### simulate_change
+- Perturbs species abundance by 20%.
+- Refits model to estimate detectability via posterior comparisons.
+
+### estimate_detection_prob
+- Summarizes detection power across simulations and plots per species.
+
+---
+
+## Suggested Next Steps
+
+1. **Use Debug Version**:
+   - Create and source `fit_gjam_model_debug.R` to test individual sites interactively.
+
+2. **Inspect Failing Sites**:
+   - Use `fit_gjam_model_debug(site_data)` on one failing site like OSBS or SRER to examine data structure.
+
+3. **Check y_matrix Issues**:
+   - Confirm dimensions, types, absence of NAs, and all species are numeric.
+
+4. **Try Small Subset**:
+   - Temporarily test the pipeline on one site and 5–10 species to isolate structural problems.
+
+5. **Add Logging**:
+   - Add `print()` or `str()` statements in the debug function for `y_matrix`, `x_data`, and `model_list`.
+
+---
+
+## Deployment
+
+The debug file (`fit_gjam_model_debug.R`) should be added to `R/` and used interactively. It does **not** replace `fit_gjam_model()` in the pipeline, but is intended for troubleshooting only.

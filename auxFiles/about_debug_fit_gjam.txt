@@ -1,0 +1,123 @@
+about 
+
+Great — here's a reusable function designed for interactive debugging of fit_gjam_model() using a specific siteID from your NEON dataset. This function:
+
+Loads the NEON data from your RDS file.
+
+Subsets it to the site of interest.
+
+Runs your full fit_gjam_model() function line by line with messages at each stage.
+
+Optionally prints intermediate data (like the response matrix) to help diagnose the failure.
+
+✅ Save this function to your R/ folder as debug_fit_gjam.R
+r
+Copy
+debug_fit_gjam_model <- function(siteID, path = "data/plant_data.rds") {
+  library(dplyr)
+  library(tidyr)
+  library(gjam)
+  
+  message("📦 Loading NEON data from: ", path)
+  all_data <- readRDS(path)
+  
+  message("🔍 Subsetting site data for: ", siteID)
+  site_data <- all_data %>% filter(siteID == !!siteID)
+  
+  if (nrow(site_data) == 0) {
+    stop("❌ No data found for siteID: ", siteID)
+  }
+
+  message("✅ Data loaded. Proceeding with model prep...")
+
+  # Check for sufficiency
+  if (nrow(site_data) < 5 || length(unique(site_data$taxonID)) < 2) {
+    message("❌ Insufficient data to fit model.")
+    return(NULL)
+  }
+
+  message("🔄 Pivoting to wide format...")
+  y_data <- site_data %>%
+    tidyr::pivot_wider(
+      id_cols = c(siteID, year, plotID, nlcdClass),
+      names_from = taxonID,
+      values_from = mean_cover,
+      values_fill = 0
+    )
+
+  message("📊 Preparing covariates (x_data)...")
+  x_data <- y_data %>%
+    select(year, nlcdClass) %>%
+    mutate(
+      year = as.numeric(year),
+      nlcdClass = as.factor(nlcdClass)
+    )
+
+  message("📈 Preparing response matrix (y_matrix)...")
+  y_matrix <- y_data %>%
+    select(-siteID, -plotID, -year, -nlcdClass)
+
+  if (ncol(y_matrix) < 2) {
+    message("❌ Too few species columns in y_matrix.")
+    return(NULL)
+  }
+
+  message("🧼 Filtering species columns with all zeros...")
+  nonzero_cols <- y_matrix[, colSums(y_matrix, na.rm = TRUE) > 0, drop = FALSE]
+  if (ncol(nonzero_cols) < 2) {
+    message("❌ Too few nonzero species.")
+    return(NULL)
+  }
+
+  if (any(is.na(nonzero_cols))) {
+    message("❌ NA values found in y_matrix — aborting.")
+    return(NULL)
+  }
+
+  if (!all(sapply(nonzero_cols, is.numeric))) {
+    message("❌ Non-numeric columns in y_matrix — aborting.")
+    return(NULL)
+  }
+
+  formula <- ~ year + nlcdClass
+  model_list <- list(
+    formula = formula,
+    xdata = x_data,
+    ydata = nonzero_cols,
+    modelList = list(typeNames = rep("Q", ncol(nonzero_cols)))
+  )
+
+  message("🚀 Attempting to fit GJAM model...")
+  fit <- tryCatch({
+    gjam::gjam(
+      formula = model_list$formula,
+      xdata = model_list$xdata,
+      ydata = model_list$ydata,
+      modelList = model_list$modelList
+    )
+  }, error = function(e) {
+    message("❌ GJAM fit failed: ", e$message)
+    return(NULL)
+  })
+
+  if (!is.null(fit)) {
+    message("✅ GJAM model fit succeeded.")
+  }
+
+  return(fit)
+}
+📌 Usage in Console
+r
+Copy
+source("R/debug_fit_gjam.R")
+
+# Debug a specific site (e.g., "JERC")
+debug_fit_gjam_model("JERC")
+Would you like me to also scaffold a variant of this that saves intermediate outputs (like y_data or nonzero_cols) to files for inspection?
+
+
+
+
+
+
+

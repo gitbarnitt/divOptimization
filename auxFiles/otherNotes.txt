@@ -1,0 +1,94 @@
+tar_target(
+  neon_data,
+  load_neon_data("data/plant_data.rds")
+),
+
+To run the _targets:
+
+targets::tar_destroy()
+
+targets::tar_make(callr_function = NULL)
+
+
+To debug:
+Yes, you can absolutely step through your targets pipeline to debug and evaluate the GJAM model runs. Here’s how you can do it, step by step:
+
+🔍 1. Manually run pipeline components outside targets
+This is the easiest way to isolate and inspect what's happening:
+
+r
+Copy
+# Load packages and functions
+library(dplyr)
+library(tidyr)
+library(gjam)
+source("R/load_neon_data.R")
+source("R/fit_gjam_model.R")
+
+# Load the full dataset
+neon_data <- load_neon_data("data/plant_data.rds")
+
+# Subset to a specific site with known issues
+site_id <- "JERC"
+site_data <- neon_data %>% filter(siteID == site_id)
+
+# Try running the GJAM model manually
+fit <- fit_gjam_model(site_data)
+This lets you:
+
+Print intermediate outputs like y_matrix
+
+Check for non-numeric values or NA
+
+Debug inside the fit_gjam_model() function interactively
+
+🪵 2. Use browser() for interactive debugging
+Insert browser() into the fit_gjam_model() function at key points. Example:
+
+r
+Copy
+if (ncol(nonzero_cols) < 2) {
+  browser()  # Stops here for you to inspect
+  message("Too few valid species columns")
+  return(NULL)
+}
+Then run the target manually:
+
+r
+Copy
+site_data <- neon_data %>% filter(siteID == "JERC")
+fit_gjam_model(site_data)
+🧪 3. Use tar_load() and rerun failed targets
+You can load intermediate targets using:
+
+r
+Copy
+targets::tar_load(site_subsamples)
+names(site_subsamples)  # List site IDs
+
+# Try a specific one
+fit <- fit_gjam_model(site_subsamples$JERC)
+🗂️ 4. Inspect diagnostics from past runs
+r
+Copy
+targets::tar_meta(fields = c("name", "warnings", "error"))
+This tells you which targets failed or warned and why.
+
+🧼 5. Confirm the input data to GJAM is valid
+Before running gjam():
+
+nonzero_cols should be all numeric with no NA
+
+Check class: str(nonzero_cols)
+
+Run: summary(nonzero_cols), anyNA(nonzero_cols)
+
+Print: head(nonzero_cols)
+
+
+
+
+
+
+
+

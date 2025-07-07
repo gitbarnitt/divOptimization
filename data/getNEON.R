@@ -5,7 +5,7 @@ library(dplyr)
 #specify data product identification
 presDataProductID <- as.character('DP1.10058.001')
 
-sites <- "OSBS"
+sites <- c("OSBS", "JERC", "SRER")
 
 #get data, all sites
 allDiv <- loadByProduct(dpID = presDataProductID, 
@@ -88,8 +88,7 @@ div_1m2Data <- filter(div_1m2Data, plotType == 'distributed') %>%
 
 str(div_1m2Data)
 
-saveRDS(div_1m2Data, 'C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/code/neon-gjam-targets/data/plant_data.rds')
-
+saveRDS(div_1m2Data, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
 
 subsetData <- readRDS('C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/project/data/plant_data.rds')
 
@@ -101,4 +100,27 @@ subsetData <- subsetData %>%
 
 saveRDS(subsetData, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
 
+#####
+#look at data:
 
+dataIn <- readRDS('C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
+sites <- dataIn %>%
+  select(siteID) %>%
+  unique() %>%
+  summarize(numberSites = n())
+
+years <- dataIn %>%
+  select(siteID, year) %>%
+  unique() %>%
+  group_by(siteID) %>%
+  summarize(numYears = n()) %>%
+  ungroup()
+
+sp <- dataIn %>%
+  select(siteID, taxonID) %>%
+  unique() %>%
+  group_by(siteID) %>%
+  summarise(numbSp = n()) %>%
+  ungroup()
+  
+  
