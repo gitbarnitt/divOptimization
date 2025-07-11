@@ -1,0 +1,89 @@
+wrt making new analysis like the old: Let me know if you’d like me to help translate the original GLM detection metrics (e.g., confidence intervals, significance) into GJAM posterior-based criteria for detectability.
+
+Working on errors in fit gjam 7/11 11.36
+
+I had: # Response matrix
+  y_matrix <- y_data %>%
+    dplyr::select(-siteID, -plotID, -year, -nlcdClass)
+  
+  if (ncol(y_matrix) < 2) {
+    message(paste("❌", site_id, ": Too few species columns to fit GJAM. Returning NULL."))
+    return(NULL)
+  }
+  
+  # Drop all-zero species
+  y_matrix <- y_matrix[, colSums(y_matrix, na.rm = TRUE) > 0, drop = FALSE]
+  
+  if (ncol(y_matrix) < 2) {
+    message("❌ ", site_id, ": Too few valid species (nonzero cols) — returning NULL.")
+    return(NULL)
+  }
+  
+  # Replace NA and enforce numeric mode
+  y_matrix[is.na(y_matrix)] <- 0
+  y_matrix <- as.matrix(y_matrix)
+  mode(y_matrix) <- "numeric"
+  
+  # Final structure check
+  if (!all(sapply(as.data.frame(y_matrix), is.numeric))) {
+    message("❌ ", site_id, ": Non-numeric columns remain in y_matrix — aborting model.")
+    return(NULL)
+  }
+
+
+diagnostics run but now removed:
+
+# Diagnostic print
+  cat("=== y_matrix structure ===\n")
+  print(str(y_matrix))
+  
+  cat("=== x_data structure ===\n")
+  print(str(x_data))
+  
+  cat("=== Dimensions ===\n")
+  cat("y_matrix rows:", nrow(y_matrix), " cols:", ncol(y_matrix), "\n")
+  cat("x_data rows:", nrow(x_data), "\n")
+  
+  cat("=== First few rows of y_matrix ===\n")
+  print(head(y_matrix))
+  
+  cat("=== typeNames vector ===\n")
+  print(model_list$modelList$typeNames)
+  
+  
+
+Great — this confirms that your model did successfully estimate betaMu and related posterior summaries, but they're stored under fit$parameters, not fit$modelSummary. So your access code should be:
+
+r
+Copy
+Edit
+fit$parameters$betaMu
+Likewise, here are the relevant posterior summaries available:
+
+What you want	Code	Notes
+Posterior means of coefficients	fit$parameters$betaMu	Matrix: rows = predictors, cols = species
+Posterior standard errors	fit$parameters$betaSe	Same shape as betaMu
+Summary table (est., SE, CI)	fit$parameters$betaTable	Tidy data frame
+With standardized predictors	fit$parameters$betaStandXmu	Based on standardized xdata
+With whitening (for dimension reduction)	fit$parameters$betaStandXWmu	For interpretation with reduced dimensions
+Significance flags (95% CI)	fit$parameters$betaTable$sig95	"*" if CI excludes 0
+
+✅ Example: View coefficient estimates for one species
+r
+Copy
+Edit
+species_name <- "ACGR2"
+fit$parameters$betaMu[, species_name]
+Or view the full table in long form:
+
+r
+Copy
+Edit
+head(fit$parameters$betaTable)
+You can filter the betaTable to only show year effects if you like:
+
+r
+Copy
+Edit
+dplyr::filter(fit$parameters$betaTable, grepl("year", rownames(fit$parameters$betaMu)))
+Let me know if you'd like a tidy wrapper to extract all year effects for each species.

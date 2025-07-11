@@ -45,25 +45,76 @@ fit_gjam_model <- function(site_data) {
     return(NULL)
   }
   
-  # Replace NA and enforce numeric mode
-  y_matrix[is.na(y_matrix)] <- 0
-  y_matrix <- as.matrix(y_matrix)
-  mode(y_matrix) <- "numeric"
+  # Ensure numeric and replace NA with 0
+  # Coerce all columns to numeric explicitly before matrix conversion
+  y_matrix <- y_matrix %>%
+    dplyr::mutate(across(everything(), ~ as.numeric(.))) %>%
+    as.matrix()
   
-  # Final structure check
+  # Replace NA just in case
+  y_matrix[is.na(y_matrix)] <- 0
+  
+  # Confirm column names are clean
+  colnames(y_matrix) <- trimws(colnames(y_matrix))
+  
+  any(sapply(as.data.frame(y_matrix), is.list))  # Should return FALSE
+  
+  cat("🧪 Final structure of y_matrix:\n")
+  str(y_matrix)
+  
+  cat("\n🧪 Classes of each column:\n")
+  print(sapply(as.data.frame(y_matrix), class))
+  
+  cat("\n🧪 Unique values in first few columns:\n")
+  print(lapply(as.data.frame(y_matrix)[, 1:5], unique))
+  
+  # Final structure check: confirm all numeric
   if (!all(sapply(as.data.frame(y_matrix), is.numeric))) {
     message("❌ ", site_id, ": Non-numeric columns remain in y_matrix — aborting model.")
     return(NULL)
   }
   
-  formula <- as.formula("~ year + nlcdClass")
+  # Row alignment check
+  if (nrow(y_matrix) != nrow(x_data)) {
+    message("❌ ", site_id, ": xdata and ydata row mismatch — aborting model.")
+    return(NULL)
+  }
+  
+  # Drop columns with zero variance (constant across samples)
+  zero_var_cols <- apply(y_matrix, 2, function(col) var(col) == 0)
+  if (any(zero_var_cols)) {
+    message(paste("🔍", site_id, ": Dropping", sum(zero_var_cols), "zero-variance species"))
+    y_matrix <- y_matrix[, !zero_var_cols, drop = FALSE]
+  }
+  
+  #set y to dataframe not matrix
+  y_df <- as.data.frame(y_matrix)
+  
+  #formula <- as.formula("~ factor(year) + nlcdClass")
+  formula = ~ year + nlcdClass
+  
+  #make x_data as.factor since not as such in formula
+  x_data <- x_data %>%
+    mutate(
+      year = as.factor(year), # Ensures alignment with factor(year) in formula
+      nlcdClass = as.factor(nlcdClass)
+    )
   
   model_list <- list(
     formula = formula,
+    #formula = ~ year,
     xdata = x_data,
-    ydata = y_matrix,
-    modelList = list(typeNames = rep("Q", ncol(y_matrix)))
-  )
+    #ydata = y_matrix,
+    ydata = y_df,
+    modelList = list(typeNames = rep("CA", ncol(y_df)))
+  ) #Despite what the GJAM documentation says, "Q" (quantitative) type is not accepted unless data are integers or counts. Your data are continuous percent cover values (e.g., 0.375, 2.5), which GJAM expects as "CA" (continuous abundance, i.e. Gaussian).
+  
+  # Diagnostics
+  cat("🧪 y_matrix colnames preview:", paste(head(colnames(y_matrix)), collapse = ", "), "\n")
+  cat("🧪 typeNames length:", length(model_list$modelList$typeNames), 
+      " | y_matrix cols:", ncol(y_matrix), "\n")
+  cat("🧪 Summary of x_data:\n")
+  print(summary(x_data))
   
   # Fit the model
   fit <- tryCatch({
@@ -80,3 +131,6 @@ fit_gjam_model <- function(site_data) {
   
   return(fit)
 }
+
+
+
