@@ -129,7 +129,11 @@ fit_gjam_model <- function(site_data) {
     return(NULL)
   })
   
-  return(fit)
+  return(list(
+    fit = fit,
+    site = site_id,
+    xdata = x_data  # ✅ Needed for simulate_yearly_changes
+  ))
 }
 
 
