@@ -5,6 +5,7 @@ source("R/load_neon_data.R")
 source("R/fit_gjam_model.R")
 #source("R/simulate_change.R")
 source("R/simulate_yearly_changes.R")
+#source("R/simulate_yearly_changes.R", echo = TRUE)
 
 # pull in raw data
 #rawNEONdata <- readRDS('C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
@@ -23,10 +24,16 @@ site_data <- neon_data %>% filter(siteID == site_id)
 #  mutate(mean_cover = as.numeric(mean_cover))
 
 # Try running the GJAM model manually
-fit <- fit_gjam_model(site_data)
+fit_result <- fit_gjam_model(site_data)
+
+table(fit_result$xdata$year, useNA = "always")
 
 #try running new simulate change function
-result <- simulate_yearly_changes(fit)
+result <- simulate_yearly_changes(fit_result)
+
+#check diagnostics
+fit$fit$xdata$year
+table(fit$fit$xdata$year)
 
 #how many years do we have?
 unique()

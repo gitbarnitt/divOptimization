@@ -11,13 +11,8 @@ simulate_yearly_changes <- function(fit, percent_change = 0.2) {
   ydata <- model$inputs$y  # original response data
   typeNames <- model$typeNames
   
-  cat("✅ simulate_yearly_changes: class(xdata): ", class(xdata), "\n")
-  cat("✅ simulate_yearly_changes: names(xdata): ", paste(names(xdata), collapse = ", "), "\n")
-  cat("✅ simulate_yearly_changes: str(xdata$year):\n")
-  str(xdata$year)
-  
-  if (!("year" %in% colnames(xdata))) {
-    warning("❌ Year column missing or xdata malformed. xdata class: ", class(xdata), ", names: ", paste(names(xdata), collapse = ", "))
+  if (!"year" %in% names(xdata)) {
+    warning("Year column missing in xdata.")
     return(NULL)
   }
   
@@ -79,16 +74,6 @@ simulate_yearly_changes <- function(fit, percent_change = 0.2) {
     cat("🔍 model$modelList present:", !is.null(model$modelList), "\n")
     cat("🔍 model$parameters present:", !is.null(model$parameters), "\n")
     cat("🔍 model$formula present:", !is.null(model$formula), "\n")
-    
-    cat("🔬 Verifying x2 just before prediction:\n")
-    str(x2)
-    cat("🔬 Does x2 match model$xdata names?\n")
-    print(setequal(names(x2), names(model$xdata)))
-    cat("🔬 Checking for NAs in x2:\n")
-    print(colSums(is.na(x2)))
-    
-    cat("🔬 Inspecting model$modelList:\n")
-    str(model$modelList)
     
     # Predict base (original) species abundances in year2
     pred_base <- tryCatch({

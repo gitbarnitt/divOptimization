@@ -102,12 +102,11 @@ fit_gjam_model <- function(site_data) {
   
   model_list <- list(
     formula = formula,
+    #formula = ~ year,
     xdata = x_data,
+    #ydata = y_matrix,
     ydata = y_df,
-    modelList = list(
-      typeNames = rep("CA", ncol(y_df)),
-      xdata = x_data  # ✅ Store for prediction
-    )
+    modelList = list(typeNames = rep("CA", ncol(y_df)))
   ) #Despite what the GJAM documentation says, "Q" (quantitative) type is not accepted unless data are integers or counts. Your data are continuous percent cover values (e.g., 0.375, 2.5), which GJAM expects as "CA" (continuous abundance, i.e. Gaussian).
   
   # Diagnostics
@@ -120,9 +119,9 @@ fit_gjam_model <- function(site_data) {
   # Fit the model
   fit <- tryCatch({
     gjam::gjam(
-      formula   = model_list$formula,
-      xdata     = model_list$xdata,
-      ydata     = model_list$ydata,
+      formula = model_list$formula,
+      xdata = model_list$xdata,
+      ydata = model_list$ydata,
       modelList = model_list$modelList
     )
   }, error = function(e) {
@@ -130,22 +129,12 @@ fit_gjam_model <- function(site_data) {
     return(NULL)
   })
   
-  # ✅ Assign manual components *after* tryCatch
-  if (!is.null(fit)) {
-    message("✅ Model fit succeeded. Assigning required components...")
-    fit$inputs     <- model_list
-    fit$modelList  <- model_list$modelList
-    fit$formula    <- model_list$formula
-    fit$xdata      <- model_list$xdata
-    class(fit)     <- "gjam"
-  }
-  
-  # ✅ Return properly
   return(list(
     fit = fit,
     site = site_id,
-    xdata = x_data
+    xdata = x_data  # ✅ Needed for simulate_yearly_changes
   ))
 }
+
 
 

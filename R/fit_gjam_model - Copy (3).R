@@ -119,32 +119,33 @@ fit_gjam_model <- function(site_data) {
   
   # Fit the model
   fit <- tryCatch({
-    gjam::gjam(
+    model <- gjam::gjam(
       formula   = model_list$formula,
       xdata     = model_list$xdata,
       ydata     = model_list$ydata,
       modelList = model_list$modelList
     )
+    
+    message("✅ Model fit succeeded. Assigning required components...")
+    
+    # ✅ Manually store all needed components for downstream prediction
+    model$inputs     <- model_list
+    model$modelList  <- model_list$modelList
+    model$formula    <- model_list$formula
+    model$xdata      <- model_list$xdata
+    class(model)     <- "gjam"
+    
+    return(model)
   }, error = function(e) {
     message(paste("❌", site_id, ": Error fitting GJAM model:", e$message))
     return(NULL)
   })
   
-  # ✅ Assign manual components *after* tryCatch
-  if (!is.null(fit)) {
-    message("✅ Model fit succeeded. Assigning required components...")
-    fit$inputs     <- model_list
-    fit$modelList  <- model_list$modelList
-    fit$formula    <- model_list$formula
-    fit$xdata      <- model_list$xdata
-    class(fit)     <- "gjam"
-  }
-  
-  # ✅ Return properly
+  # Final return from function
   return(list(
-    fit = fit,
+    fit = model,
     site = site_id,
-    xdata = x_data
+    xdata = x_data  # ✅ Needed for simulate_yearly_changes
   ))
 }
 
