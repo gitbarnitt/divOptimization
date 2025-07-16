@@ -106,7 +106,8 @@ fit_gjam_model <- function(site_data) {
     ydata = y_df,
     modelList = list(
       typeNames = rep("CA", ncol(y_df)),
-      xdata = x_data  # ✅ Store for prediction
+      xdata = x_data, 
+      reductList = list(REDUCT = FALSE)  # ✅ <-- Add this line
     )
   ) #Despite what the GJAM documentation says, "Q" (quantitative) type is not accepted unless data are integers or counts. Your data are continuous percent cover values (e.g., 0.375, 2.5), which GJAM expects as "CA" (continuous abundance, i.e. Gaussian).
   
@@ -138,6 +139,9 @@ fit_gjam_model <- function(site_data) {
     fit$formula    <- model_list$formula
     fit$xdata      <- model_list$xdata
     class(fit)     <- "gjam"
+    
+    # ✅ Print REDUCT status
+    print(fit$modelList$reductList$REDUCT)
   }
   
   # ✅ Return properly

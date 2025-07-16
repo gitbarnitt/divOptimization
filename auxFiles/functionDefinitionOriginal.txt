@@ -1,0 +1,840 @@
+function (output, newdata, y2plot, PLOT, ylim, FULL, verbose = FALSE) 
+{
+  if (is.null(newdata)) {
+    if (PLOT) {
+      y2plot <- .cleanNames(y2plot)
+      y1 <- output$inputs$y
+      y2 <- output$prediction$ypredMu
+      if (!is.null(y2plot)) {
+        y1 <- y1[, y2plot]
+        y2 <- y2[, y2plot]
+      }
+      tmp <- .bins4data(y1)
+      breaks <- tmp$breaks
+      bins <- tmp$bins
+      nbin <- tmp$nbin
+      if (length(bins) > 0) {
+        breaks <- bins
+        nPerBin <- NULL
+      }
+      opt <- list(nPerBin = NULL, breaks = breaks, ylimit = range(y2, 
+        na.rm = T), fill = "lightblue", box.col = "darkblue", 
+        POINTS = F)
+      .plotObsPred(y1, y2, opt = opt)
+      abline(0, 1, lwd = 4, col = "white")
+      abline(0, 1, lwd = 2, col = "grey", lty = 2)
+    }
+    return(list(ypredMu = output$modelSummary$ypredMu, ypredSe = output$modelSummary$ypredSd))
+  }
+  if (is.data.frame(newdata)) 
+    stop("newdata is a data.frame, must be a named list")
+  xdata <- xnew <- ydataCond <- interBeta <- groupRandEff <- NULL
+  tiny <- 1e-10
+  effMat <- wHold <- phiHold <- ploHold <- sampleWhold <- NULL
+  STAND <- COND <- RANDOM <- NEWX <- XCOND <- FALSE
+  cindex <- NULL
+  groupRandEff <- 0
+  TRAITS <- SAMEY <- FALSE
+  effortSource <- "output"
+  holdoutN <- 0
+  holdoutIndex <- NULL
+  ng <- output$modelList$ng
+  burnin <- output$modelList$burnin
+  randByGroupMu <- output$parameters$randByGroupMu
+  randByGroupSe <- output$parameters$randByGroupSe
+  groupIndex <- output$parameters$groupIndex
+  rndEffMu <- output$parameters$rndEffMu
+  rndEffSe <- output$parameters$rndEffSe
+  ngroup <- ncol(randByGroupMu)
+  if (!is.null(randByGroupMu)) 
+    RANDOM <- TRUE
+  Q <- length(output$inputs$xnames)
+  n <- nrow(output$inputs$y)
+  y <- yp <- output$inputs$y
+  x <- output$inputs$xStand
+  S <- SO <- S1 <- ncol(y)
+  xnames <- colnames(x)
+  ynames <- colnames(y)
+  notOther <- output$inputs$notOther
+  other <- output$inputs$other
+  SO <- length(notOther)
+  otherpar <- output$modelList$reductList$otherpar
+  censor <- output$modelList$censor
+  xdata <- output$inputs$xdata
+  effort <- output$modelList$effort
+  notStandard <- output$modelList$notStandard
+  nsim <- 500
+  if ("nsim" %in% names(newdata)) 
+    nsim <- newdata$nsim
+  if ("xdata" %in% names(newdata)) 
+    NEWX <- T
+  if ("effort" %in% names(newdata)) 
+    effort <- newdata$effort
+  if ("ydataCond" %in% names(newdata)) 
+    COND <- T
+  if ("xdata" %in% names(newdata) & "ydataCond" %in% names(newdata)) 
+    XCOND <- T
+  if ("SAMEY" %in% names(newdata)) 
+    SAMEY <- newdata$SAMEY
+  if ("TRAITS" %in% names(output$modelList)) 
+    TRAITS <- output$modelList$TRAITS
+  inSamp <- 1:n
+  REDUCT <- output$modelList$REDUCT
+  SAMEX <- F
+  sigmaerror <- NULL
+  if (REDUCT) {
+    otherpar <- output$modelList$reductList$otherpar
+    N <- otherpar$N
+    r <- otherpar$r
+    rndEff <- y * 0
+    sigmaerror <- otherpar$sigmaerror
+    if (!NEWX) 
+      SAMEX <- T
+    if (COND) 
+      stop("conditional prediction not currently implemented with dimension reduction")
+  }
+  cuts <- output$parameters$cutMu
+  if (!is.null(cuts)) 
+    cuts <- cbind(-Inf, 0, cuts, Inf)
+  nfact <- output$inputs$factorBeta$nfact
+  isFactor <- output$inputs$factorBeta$isFactor
+  factorList <- output$inputs$factorBeta$factorList
+  contrasts <- output$inputs$factorBeta$contrast
+  formula <- output$modelList$formula
+  xscale <- output$inputs$standX
+  if (is.matrix(xscale)) 
+    xscale <- t(xscale)
+  facNames <- names(factorList)
+  facLevels <- unlist(factorList)
+  typeNames <- output$modelList$typeNames
+  tmp <- .gjamGetTypes(typeNames)
+  typeFull <- tmp$typeFull
+  typeCols <- tmp$typeCols
+  allTypes <- unique(typeCols)
+  typeCode <- tmp$TYPES[typeCols]
+  FCgroups <- attr(typeNames, "FCgroups")
+  CCgroups <- attr(typeNames, "CCgroups")
+  CATgroups <- attr(typeNames, "CATgroups")
+  condCols <- numeric(0)
+  corCols <- which(typeNames %in% c("PA", "OC", "CAT"))
+  notCorCols <- 1:S
+  standRows <- output$inputs$standRows
+  standX <- output$inputs$standX
+  ig <- grep(":", names(standRows))
+  if (length(ig) > 0) 
+    standRows <- standRows[-ig]
+  ig <- grep(":", rownames(standX))
+  if (length(ig) > 0) 
+    standX <- standX[-ig, ]
+  if (length(factorList) > 0) {
+    standRows <- standRows[!names(standRows) %in% facLevels]
+    standX <- standX[drop = F, !rownames(standX) %in% facLevels, 
+      ]
+  }
+  xmu <- standX[, 1]
+  xsd <- standX[, 2]
+  intMat <- interBeta$intMat
+  nx <- n
+  if (!is.null(effort)) {
+    effort <- buildFullEffort(ynames, effort$columns, effort$values)
+    effMat <- effort$values
+    effortSource <- "newdata"
+  }
+  if (NEWX) {
+    xnew <- newdata$xdata
+    nx <- n <- nrow(xnew)
+    colnames(xnew) <- .cleanNames(colnames(xnew))
+    if ("effort" %in% names(newdata)) {
+      effort <- buildFullEffort(ynames, newdata$effort$columns, 
+        newdata$effort$values)
+      effortSource <- "newdata"
+      toConsole("effort taken from newdata", verbose)
+    }
+    else {
+      effort <- buildFullEffort(ynames, 1:S, rep(1, nx))
+      effortSource <- "none"
+      if ("DA" %in% typeNames) 
+        toConsole("Note: no effort provided, assumed = 1", 
+          verbose = verbose)
+    }
+    effMat <- effort$values
+  }
+  ymaxData <- apply(output$inputs$y, 2, max)
+  if (RANDOM) {
+    if (NEWX) {
+      rname <- output$modelList$random
+      randGroupName <- as.character(xnew[, rname])
+      groupIndexNew <- which(!randGroupName %in% colnames(randByGroupMu))
+      groupIndex <- match(randGroupName, colnames(randByGroupMu))
+      newGroups <- NULL
+      if (length(groupIndexNew) > 0) {
+        newGroups <- unique(groupIndex[groupIndexNew])
+        ngroupNew <- length(newGroups)
+        toConsole("New random group(s) not in fitted data", 
+          newGroups, verbose)
+        newMu <- matrix(0, S, length(newGroups))
+        colnames(newMu) <- newGroups
+        randByGroupMu <- cbind(randByGroupMu, newMu)
+        avm <- output$parameters$randGroupVarMu
+        avs <- output$parameters$randGroupVarSe
+        lt <- lower.tri(avm, diag = T)
+        wrand <- which(lt, arr.ind = T)
+        avg <- matrix(0, S, S)
+        rse <- sqrt(diag(avm))
+        newMu[1:length(newMu)] <- rse
+        randByGroupSe <- cbind(randByGroupSe, newMu)
+        ngroup <- ncol(randByGroupMu)
+      }
+      fnow <- names(which(sapply(output$inputs$xdata, 
+        is.factor)))
+      fnew <- names(which(sapply(xnew, is.factor)))
+      fnow <- fnow[fnow %in% colnames(xnew)]
+      ww <- which(!fnow %in% fnew)
+      if (length(ww) > 0) 
+        for (k in ww) {
+          xnew[, fnow[k]] <- as.factor(xnew[, fnow[k]])
+        }
+      if (identical(output$inputs$xdata, xnew)) {
+        SAMEX <- T
+        toConsole("Predict same X", verbose = verbose)
+      }
+      else {
+        toConsole("Predict different X", verbose = verbose)
+      }
+    }
+    else {
+      groupIndex <- output$parameters$groupIndex
+    }
+    if (is.null(newGroups)) 
+      toConsole("Use fitted random effects", verbose = verbose)
+  }
+  if (!NEWX & RANDOM) 
+    SAMEX <- T
+  if (NEWX | XCOND) {
+    holdoutN <- nx
+    holdoutIndex <- 1:nx
+    if (REDUCT) {
+      if (SAMEY) {
+        cat("\nUsing fitted RE from dimension reduction\n")
+      }
+      else {
+        cat("\nRandom effects generated by dimension reduction are marginalized")
+        cat(" here, unlike in function gjam where they are used directly for")
+        cat(" prediction. With dimension reduction, predictions here will be")
+        cat(" noisier than from gjam\n")
+      }
+    }
+    ydataCond <- NULL
+    if (nfact > 0) {
+      for (j in 1:nfact) {
+        nf <- names(factorList)[j]
+        wf <- which(names(xnew) == nf)
+        wo <- which(names(output$xnew) == nf)
+        wc <- which(names(contrasts) == names(factorList)[j])
+        cc <- contrasts[[wc]]
+        xnew[[wf]] <- factor(xnew[[wf]], levels = rownames(cc))
+        attr(xnew[[wf]], "contrasts") <- cc
+      }
+    }
+    yp <- matrix(0, nx, S)
+    colnames(yp) <- ynames
+    tmp <- .getStandX(formula, xu = xnew, standRows, xmu = xmu, 
+      xsd = xsd, verbose = verbose)
+    xnew <- tmp$xdataStand
+    u2s <- tmp$U2S
+    if (!attr(u2s, "valid")) 
+      toConsole("Could not solve for unstandardized u2s for xnew", 
+        verbose = verbose)
+    tmp <- .gjamXY(formula, xnew, yp, typeNames, notStandard = names(xnew), 
+      checkX = F, xscale = xscale, verbose)
+    x <- tmp$x
+    beta <- output$parameters$betaStandXmu
+    beta[is.na(beta)] <- 0
+    if (is.null(beta)) {
+      beta <- output$parameters$betaMu
+      STAND <- FALSE
+    }
+    w <- x %*% beta
+    if (length(corCols) > 0) {
+      sg <- output$parameters$sigMu
+      alpha <- .sqrtMatrix(beta, sg, DIVIDE = T)
+      w[, corCols] <- x %*% alpha[, corCols]
+    }
+    yp <- w * effMat
+    wca <- which(typeNames == "CA")
+    if (length(wca) > 0) {
+      yp[, wca][yp[, wca] < 0] <- 0
+    }
+    wda <- which(typeNames == "DA")
+    if (length(wda) > 0) {
+      yp[, wda] <- round(yp[, wda], 0)
+      yp[, wda][yp[, wda] < 0] <- 0
+    }
+    ordCols <- which(typeNames == "OC")
+    if (length(ordCols) > 0) {
+      tmp <- .gjamGetCuts(yp + 1, ordCols)
+      cutLo <- tmp$cutLo
+      cutHi <- tmp$cutHi
+      for (k in ordCols) {
+        yp[, k] <- findInterval(yp[, k], cuts[k, ]) - 
+          1
+      }
+    }
+    if (length(FCgroups) > 0) {
+      ntt <- max(FCgroups)
+      for (i in 1:ntt) {
+        wk <- which(FCgroups == i)
+        wo <- which(wk %in% notOther)
+        yp[, wk] <- .gjamCompW2Y(yp[, wk, drop = F], 
+          notOther = wo)$ww
+      }
+    }
+    if (length(CCgroups) > 0) {
+      toConsole("For CC data total effort (count) is taken as 10000", 
+        verbose = verbose)
+      ysum <- rep(10000, n)
+      ntt <- max(CCgroups)
+      y <- output$inputs$y
+      wFromY <- sweep(y, 1, rowSums(y, na.rm = T), "/")
+      wFromY[!is.finite(wFromY)] <- 0
+      wmax <- apply(wFromY, 2, max)
+      wmat <- matrix(wmax, n, S, byrow = T)
+      yp <- sweep(wmat, 1, rowSums(wmat, na.rm = T), "/")
+      yp <- round(yp * 10000)
+    }
+    tmp <- .gjamSetup(typeNames, x, y = yp, breakList = NULL, 
+      holdoutN = NULL, holdoutIndex = NULL, censor = NULL, 
+      effort = effort)
+    w <- tmp$w
+    z <- tmp$z
+    yp <- tmp$y
+    other <- tmp$other
+    plo <- tmp$plo
+    phi <- tmp$phi
+    ordCols <- tmp$ordCols
+    disCols <- tmp$disCols
+    compCols <- tmp$compCols
+    minOrd <- tmp$minOrd
+    maxOrd <- tmp$maxOrd
+    censorCA <- tmp$censorCA
+    censorDA <- tmp$censorDA
+    censorCON <- tmp$censorCON
+    ncut <- ncol(cuts)
+    corCols <- tmp$corCols
+    if (length(corCols) > 0) 
+      notCorCols <- notCorCols[-corCols]
+    catCols <- which(attr(typeNames, "CATgroups") > 0)
+    sampleW <- tmp$sampleW * 0 + 1
+    byCol <- byRow <- F
+    if (attr(sampleW, "type") == "cols") 
+      byCol <- T
+    if (attr(sampleW, "type") == "rows") 
+      byRow <- T
+    indexW <- attr(sampleW, "index")
+    inSamp <- 1:n
+    byCol <- byRow <- F
+    if (attr(sampleW, "type") == "cols") 
+      byCol <- T
+    if (attr(sampleW, "type") == "rows") 
+      byRow <- T
+    indexW <- attr(sampleW, "index")
+    cdex <- c(1:S)
+  }
+  if (COND | XCOND) {
+    ydataCond <- newdata$ydataCond
+    if (!is.data.frame(ydataCond) & !is.matrix(ydataCond)) 
+      stop("ydataCond must be a matrix with column names to match ydata")
+    if (is.data.frame(ydataCond)) 
+      ydataCond <- as.matrix(ydataCond)
+    colnames(ydataCond) <- .cleanNames(colnames(ydataCond))
+    condNames <- colnames(ydataCond)
+    if ("other" %in% condNames) {
+      condNames <- condNames[condNames != "other"]
+      ydataCond <- ydataCond[, condNames]
+    }
+    if (!XCOND) 
+      yp <- y
+    condCols <- match(condNames, colnames(yp))
+    yp[, condCols] <- as.matrix(ydataCond)
+    condW <- condCols[typeNames[condCols] %in% c("CA", "DA", 
+      "PA", "OC", "CC")]
+    condCA <- condCols[typeNames[condCols] == "CA"]
+    cdex <- c(1:S)[-condCols]
+  }
+  tmp <- .gjamSetup(typeNames, x, yp, breakList = NULL, holdoutN = NULL, 
+    holdoutIndex = NULL, censor = NULL, effort = effort)
+  w <- tmp$w
+  z <- tmp$z
+  yp <- tmp$y
+  other <- tmp$other
+  plo <- tmp$plo
+  phi <- tmp$phi
+  ordCols <- tmp$ordCols
+  disCols <- tmp$disCols
+  compCols <- tmp$compCols
+  minOrd <- tmp$minOrd
+  maxOrd <- tmp$maxOrd
+  censorCA <- tmp$censorCA
+  cuts <- tmp$cuts
+  censorDA <- tmp$censorDA
+  censorCON <- tmp$censorCON
+  ncut <- ncol(cuts)
+  corCols <- tmp$corCols
+  if (length(corCols) > 0) 
+    notCorCols <- notCorCols[-corCols]
+  catCols <- which(attr(typeNames, "CATgroups") > 0)
+  sampleW <- tmp$sampleW
+  sampleW[, -condCols] <- 1
+  byCol <- byRow <- F
+  if (attr(sampleW, "type") == "cols") 
+    byCol <- T
+  if (attr(sampleW, "type") == "rows") 
+    byRow <- T
+  indexW <- attr(sampleW, "index")
+  yz <- y
+  if (XCOND) 
+    yz <- yp
+  if (length(other) > 0) 
+    cdex <- cdex[!cdex %in% other]
+  S1 <- length(cdex)
+  yg <- yp
+  if (length(yp) < 10000 | FULL) 
+    FULL <- T
+  if (FULL) {
+    ygibbs <- wgibbs <- matrix(0, nsim, length(yp))
+  }
+  pmax <- apply(output$inputs$y/output$modelList$effort$values, 
+    2, max)
+  CCsums <- CCmax <- numeric(0)
+  if (!is.null(CCgroups)) {
+    ncc <- max(CCgroups)
+    for (j in 1:ncc) {
+      wjk <- which(CCgroups == j)
+      rs <- rowSums(output$inputs$y[, wjk])
+      ms <- output$inputs$y[, wjk]/rs
+      ms <- apply(ms, 2, max, na.rm = T)
+      CCmax <- append(CCmax, list(ms))
+      CCsums <- append(CCsums, list(rs))
+      pmax[wjk] <- ms
+    }
+  }
+  pmax[pmax < 0.1 & typeNames %in% c("DA", "CA", "PA", "OC")] <- 0.1
+  ptmp <- 2 * matrix(pmax, n, S, byrow = T)
+  ptmp[, ordCols] <- length(ordCols) + 10
+  ptmp[, compCols] <- 1.2 * ptmp[, compCols]
+  ptmp[, compCols][ptmp[, compCols] > 1] <- 1
+  ptmp[, catCols] <- 10
+  if (COND) {
+    ncc <- sort(unique(c(condCols, other)))
+    ploCond <- -ptmp[, -ncc, drop = F]/2
+    phiCond <- 5 * ptmp[, -ncc, drop = F]
+    colnames(ploCond) <- colnames(phiCond) <- colnames(y)[-ncc]
+    plo[, -ncc] <- ploCond
+    phi[, -ncc] <- phiCond
+    holdoutN <- 0
+    holdoutIndex <- NULL
+    ploHold <- phiHold <- NULL
+  }
+  if (!COND & !XCOND & !SAMEX) {
+    holdoutN <- n
+    holdoutIndex <- c(1:n)
+    plo <- -ptmp * 0.5
+    phi <- 5 * ptmp
+    ploHold <- -ptmp * 0.5
+    phiHold <- 5 * ptmp
+  }
+  if (SAMEY) 
+    holdoutN <- 0
+  RD <- F
+  if ((REDUCT & SAMEX) | SAMEY) 
+    RD <- T
+  .updateW <- .wWrapper(REDUCT = RD, RANDOM, S, effMat, corCols, 
+    notCorCols, typeNames, typeFull, typeCols, allTypes, 
+    holdoutN, holdoutIndex, censor, censorCA, censorDA, 
+    censorCON, notOther, sampleW, byRow, byCol, indexW, 
+    ploHold, phiHold, sampleWhold, inSamp)
+  ypred <- matrix(0, n, S)
+  colnames(ypred) <- ynames
+  ypred2 <- wcred <- wcred2 <- ypred
+  if (TRAITS) {
+    specByTrait <- output$modelList$traitList$specByTrait
+    specTrait <- specByTrait[colnames(y), ]
+    tnames <- colnames(specTrait)
+    M <- ncol(specTrait)
+    specTrait <- t(specTrait)
+    traitTypes <- output$modelList$traitList$traitTypes
+    tpred <- matrix(0, n, M)
+    colnames(tpred) <- rownames(specTrait)
+    tpred2 <- tpred
+  }
+  gvals <- sample(burnin:ng, nsim, replace = T)
+  pbar <- txtProgressBar(min = 1, max = nsim, style = 1)
+  ig <- 0
+  corColC <- cdex[cdex %in% corCols]
+  corColW <- which(cdex %in% corCols)
+  ddex <- which(notOther %in% cdex)
+  kdex <- c(1:S)[-ddex]
+  pdex <- ddex[typeNames[ddex] %in% c("CON", "CA")]
+  cutg <- cuts
+  ncut <- ncol(cutg)
+  ccols <- which(typeNames != "CON")
+  kg <- 1
+  rndEff <- 0
+  prPresent <- w * 0
+  emat <- matrix(0, S, S)
+  colnames(emat) <- rownames(emat) <- ynames
+  lo <- hi <- lm <- hm <- ess <- emat
+  eCont <- output$inputs$factorBeta$eCont
+  dCont <- output$inputs$factorBeta$dCont
+  lCont <- output$inputs$factorBeta$lCont
+  covE <- cov(x %*% dCont)
+  frow <- NULL
+  if (nfact > 0) {
+    frow <- rep(0, Q)
+    for (j in 1:nfact) {
+      frow[match(factorList[[j]], xnames)] <- j
+    }
+  }
+  q1 <- nrow(eCont)
+  fnames <- rownames(eCont)
+  facList2 <- factorList
+  if (nfact > 0) {
+    for (j in 1:nfact) {
+      wj <- which(names(xnew) == names(factorList)[j])
+      facList2[[j]] <- levels(xnew[[wj]])
+    }
+  }
+  notPA <- which(!typeNames == "PA" & !typeNames == "CON")
+  notPA <- notPA[!notPA %in% condCols]
+  tiny <- 1e-05
+  sampW <- 1 + w * 0
+  rows <- 1:nrow(w)
+  bg <- output$parameters$betaStandXmu * 0
+  chainNames <- colnames(output$chains$bgibbs)
+  dimnames <- dimnames(bg)
+  tt <- .multivarChainNames2matrix(chainNames, dimnames)
+  bg <- tt$beta
+  wB <- tt$wB
+  for (g in gvals) {
+    bg[wB] <- output$chains$bgibbs[g, ]
+    muw <- x %*% bg
+    if (REDUCT) {
+      sigmaerror <- output$chains$sigErrGibbs[g]
+      if (RD) {
+        rndEff <- rndEffMu + matrix(rnorm(n * S, 0, 
+          rndEffSe), n, S)
+        sg <- diag(sigmaerror, S)
+      }
+      else {
+        rndEff <- 0
+        Z <- matrix(output$chains$sgibbs[g, ], N, r)
+        K <- output$chains$kgibbs[g, ]
+        sg <- .expandSigma(sigmaerror, S, Z = Z, K, 
+          REDUCT = T)
+      }
+      if (COND) {
+        Z <- matrix(output$chains$sgibbs[g, ], N, r)
+        K <- output$chains$kgibbs[g, ]
+        sgcond <- .expandSigma(sigmaerror, S, Z = Z, 
+          K, REDUCT = T)
+      }
+    }
+    else {
+      sg <- .expandSigma(output$chains$sgibbs[g, ], S = S, 
+        REDUCT = F)
+    }
+    if (RANDOM) {
+      randByGroup <- rnorm(length(randByGroupMu), randByGroupMu, 
+        randByGroupSe)
+      randByGroup <- t(matrix(randByGroup, S, ngroup))
+      rownames(randByGroup) <- colnames(randByGroupMu)
+      groupRandEff <- randByGroup[groupIndex, ]
+      if (!is.null(newGroups)) {
+        avg[wrand] <- rnorm(nrow(wrand), avm[wrand], 
+          avs[wrand])
+        avg[wrand[, c(2, 1)]] <- avg[wrand]
+        groupRandEff[groupIndexNew, ] <- rmvnormRcpp(length(groupIndexNew), 
+          0, avg)
+      }
+    }
+    alpha <- .sqrtMatrix(bg, sg, DIVIDE = T)
+    agg <- .sqrtMatrix(bg[, notOther], sg[notOther, notOther], 
+      DIVIDE = T)
+    if (nfact > 0) {
+      agg <- lCont %*% agg
+      for (k in 1:nfact) {
+        fk <- factorList[[k]]
+        mua <- colMeans(agg[drop = F, fk, ])
+        nl <- length(fk)
+        agg[fk, ] <- agg[fk, ] - matrix(mua, nl, SO, 
+          byrow = T)
+      }
+    }
+    else {
+      agg <- agg[drop = F, -1, ]
+    }
+    egg <- lCont %*% bg[, notOther]
+    if ("OC" %in% typeCode) {
+      cutg[, 3:(ncut - 1)] <- matrix(output$chains$cgibbs[g, 
+        ], length(ordCols))
+      tmp <- .gjamGetCuts(yg + 1, ordCols)
+      cutLo <- tmp$cutLo
+      cutHi <- tmp$cutHi
+      plo[, ordCols] <- cutg[cutLo]
+      phi[, ordCols] <- cutg[cutHi]
+    }
+    tmp <- .updateW(rows = 1:nrow(x), x, w, y = yp, bg, 
+      sg, alpha, cutg, plo, phi, rndEff = rndEff, groupRandEff, 
+      sigmaerror, wHold)
+    w <- tmp$w
+    yg <- tmp$yp
+    if (COND | XCOND) {
+      if (length(ddex) > 0) {
+        gre <- groupRandEff
+        if (length(gre) > 1) 
+          gre <- groupRandEff[, notOther]
+        tmp <- .conditionalMVN(w[, notOther], muw[, 
+          notOther] + gre, sg[notOther, notOther], cdex = ddex)
+        muc <- tmp$mu
+        sgp <- tmp$vr
+        wd <- which(ddex %in% corCols)
+        if (length(wd) > 0) {
+          css <- .cov2Cor(sg)
+          mus <- x %*% alpha
+          wws <- .sqrtMatrix(w, sg, DIVIDE = T)
+          tmp <- .conditionalMVN(wws, mus + groupRandEff, 
+            css, cdex = ddex, S)
+          muk <- tmp$mu
+          sgk <- tmp$vr
+          muc[, wd] <- muk
+          sgp[wd, wd] <- sgk
+        }
+        if (length(ddex) == 1) {
+          wex <- matrix(.tnorm(nrow(x), ploCond, phiCond, 
+            muc, sqrt(sgp[1])), ncol = 1)
+        }
+        else {
+          lo <- ploCond
+          hi <- phiCond
+          avec <- muc
+          avec[muc < lo] <- lo[muc < lo]
+          avec[muc > hi] <- hi[muc > hi]
+          wex <- .tnormMVNmatrix(avec = avec, muvec = muc, 
+            smat = sgp, lo = lo, hi = hi)
+        }
+        yPredict <- yg
+        yPredict[, ddex] <- wex
+        groups <- NULL
+        z <- w
+        z[, ddex] <- wex
+        for (k in allTypes) {
+          wk <- which(typeCols == k)
+          nk <- length(wk)
+          wo <- which(wk %in% notOther)
+          wu <- which(typeCols[notOther] == k)
+          wp <- z[, wk, drop = F]
+          yq <- yPredict[, wk, drop = F]
+          if (typeFull[wk[1]] == "countComp") 
+            groups <- CCgroups
+          if (typeFull[wk[1]] == "fracComp") 
+            groups <- FCgroups
+          if (typeFull[wk[1]] == "categorical") 
+            groups <- CATgroups
+          glist <- list(wo = wo, type = typeFull[wk[1]], 
+            yy = y[, wk, drop = F], wq = wp, yq = yq, 
+            cutg = cutg, censor = censor, censorCA = censorCA, 
+            censorDA = censorDA, censorCON = censorCON, 
+            eff = effMat[, wk, drop = F], groups = groups, 
+            k = k, typeCols = typeCols, notOther = notOther, 
+            wk = wk, sampW = sampleW[, wk])
+          tmp <- .gjamWLoopTypes(glist)
+          yPredict[, wk] <- tmp[[2]]
+        }
+      }
+      yg[, ddex] <- yPredict[, ddex]
+      muw[, pdex] <- muc
+      yg[, condCols] <- as.matrix(ydataCond)
+    }
+    if (length(ccols) > 0) {
+      mmm <- muw[, ccols]
+      mmm[mmm < 0] <- 0
+      muw[, ccols] <- mmm
+    }
+    yy <- yg
+    if ("PA" %in% typeNames) {
+      wpa <- which(typeNames == "PA")
+      yy[, wpa] <- round(yg[, wpa])
+    }
+    if (length(notPA) > 0) {
+      w0 <- which(yy[, notPA] <= 0)
+      w1 <- which(yy[, notPA] > 0)
+      yy[, notPA][w0] <- 0
+      yy[, notPA][w1] <- 1
+    }
+    prPresent <- prPresent + yy
+    ig <- ig + 1
+    setTxtProgressBar(pbar, ig)
+    ypred <- ypred + yg
+    ypred2 <- ypred2 + yg^2
+    wcred <- wcred + muw
+    wcred2 <- wcred2 + muw^2
+    ess[notOther, notOther] <- .cov2Cor(t(agg) %*% covE %*% 
+      agg)
+    emat[notOther, notOther] <- emat[notOther, notOther] + 
+      ess[notOther, notOther]
+    if (FULL) {
+      ygibbs[kg, ] <- as.vector(yg)
+      wgibbs[kg, ] <- as.vector(muw)
+    }
+    if (TRAITS) {
+      yw <- yg
+      yw[yw <= 0] <- 0
+      yw[is.na(yw)] <- 0
+      yw <- sweep(yw, 1, rowSums(yw), "/")
+      Ttrait <- .gjamPredictTraits(yw, specTrait, traitTypes)
+      tpred <- tpred + Ttrait
+      tpred2 <- tpred2 + Ttrait^2
+    }
+    kg <- kg + 1
+  }
+  prPresent <- prPresent/nsim
+  ematrix <- emat/nsim
+  xf <- NULL
+  if (length(facNames) > 0) {
+    xf <- xdata[, facNames, drop = F]
+  }
+  xunstand <- try(.getUnstandX(formula, x, xdata, standRows), 
+    T)
+  if (inherits(xunstand, "try-error")) {
+    xunstand <- NULL
+  }
+  else {
+    xunstand <- xunstand$xu
+  }
+  ms <- sums2meanSd(ypred, ypred2, nsim)
+  yMu <- ms$mean
+  yPe <- ms$sd
+  ms <- sums2meanSd(wcred, wcred2, nsim)
+  wMu <- ms$mean
+  wSe <- ms$sd
+  colnames(yMu) <- colnames(yPe) <- colnames(wMu) <- colnames(wSe) <- ynames
+  sdList <- list(yMu = yMu, yPe = yPe, wMu = wMu, wSe = wSe)
+  if (TRAITS) {
+    ms <- sums2meanSd(tpred, tpred2, nsim)
+    sdList$tMu <- ms$mean
+    sdList$tSe <- ms$sd
+  }
+  piList <- NULL
+  if (FULL) {
+    wLo <- matrix(apply(wgibbs, 2, quantile, 0.05), n, S)
+    wHi <- matrix(apply(wgibbs, 2, quantile, 0.95), n, S)
+    yLo <- matrix(apply(ygibbs, 2, quantile, 0.05), n, S)
+    yHi <- matrix(apply(ygibbs, 2, quantile, 0.95), n, S)
+    colnames(wLo) <- colnames(wHi) <- colnames(yLo) <- colnames(yHi) <- ynames
+    piList <- list(wLo = wLo, wHi = wHi, yLo = yLo, yHi = yHi)
+  }
+  if (PLOT) {
+    oma <- c(0, 0, 0, 0)
+    mar <- c(4, 4, 2, 1)
+    tcl <- -0.5
+    mgp <- c(3, 1, 0)
+    par(oma = oma, mar = mar, tcl = tcl, mgp = mgp, bty = "n")
+    wy <- which(colnames(y) %in% y2plot & c(1:S) %in% notOther)
+    t2plot <- typeNames[wy]
+    allTypes <- unique(t2plot)
+    mfrow <- .getPlotLayout(length(allTypes) + 1)
+    par(mfrow = mfrow, bty = "n", mar = c(1, 2, 3, 1))
+    k <- 0
+    add <- F
+    for (j in 1:length(allTypes)) {
+      wk <- which(typeNames == allTypes[j] & c(1:S) %in% 
+        notOther)
+      ws <- colnames(y)[wk]
+      wm <- which(colnames(yMu) %in% colnames(y)[wk])
+      wk <- match(colnames(yMu)[wm], colnames(y))
+      y1 <- y[, wk]
+      if (min(y1) == max(y1)) 
+        next
+      y2 <- yMu[, wm]
+      tmp <- .gjamPlotPars(type = allTypes[j], y1, y2)
+      y1 <- tmp$y1
+      yp <- tmp$yp
+      nbin <- tmp$nbin
+      nPerBin <- tmp$nPerBin
+      vlines <- tmp$vlines
+      xlimit <- tmp$xlimit
+      ylimit <- tmp$ylimit
+      breaks <- tmp$breaks
+      wide <- tmp$wide
+      LOG <- tmp$LOG
+      POINTS <- F
+      MEDIAN <- tmp$MEDIAN
+      log <- ""
+      if (LOG) 
+        log <- "xy"
+      if (LOG) {
+        wn <- which(y1 > 0 & yp > 0)
+        y1 <- y1[wn]
+        yp <- yp[wn]
+      }
+      tmp <- .bins4data(y1, nPerBin = nPerBin, breaks = breaks, 
+        LOG = LOG)
+      breaks <- tmp$breaks
+      bins <- tmp$bins
+      nbin <- tmp$nbin
+      if (!allTypes[j] %in% c("PA", "CAT")) {
+        ncc <- max(c(100, max(y1)/20))
+        xy <- .gjamBaselineHist(y1, bins = bins, nclass = ncc)
+        xy[2, ] <- ylimit[1] + 0.8 * xy[2, ] * diff(ylimit)/max(xy[2, 
+          ])
+        plot(xy[1, ], xy[2, ], col = "tan", type = "s", 
+          lwd = 2, xlim = xlimit, ylim = ylimit, xlab = "Observed", 
+          ylab = "Predicted")
+        polygon(xy[1, ], xy[2, ], border = "tan", col = "wheat")
+      }
+      else {
+        y11 <- mean(y1)
+        y00 <- 1 - y11
+        x11 <- c(-0.07, -0.07, 0.07, 0.07, 0.93, 0.93, 
+          1.07, 1.07, -0.07)
+        y11 <- c(0, y00, y00, 0, 0, y11, y11, 0, 0)
+        plot(x11, y11, col = "tan", type = "s", lwd = 2, 
+          xlim = xlimit, ylim = ylimit, xlab = "Observed", 
+          ylab = "Predicted")
+        polygon(x11, y11, border = "tan", col = "wheat")
+      }
+      abline(0, 1, lty = 2, lwd = 3, col = "brown")
+      abline(h = mean(y1), lty = 2, lwd = 3, col = "tan")
+      add <- T
+      opt <- list(xlabel = "Observed", ylabel = "Predicted", 
+        nbin = nbin, nPerBin = nPerBin, xlimit = xlimit, 
+        ylimit = ylimit, breaks = breaks, wide = wide, 
+        LOG = LOG, fill = "lightblue", box.col = "darkblue", 
+        POINTS = F, MEDIAN = MEDIAN, add = add)
+      .plotObsPred(y1, y2, opt = opt)
+      tt <- allTypes[j]
+      if (length(ws) == 1) 
+        tt <- paste(ws, tt, sep = "-")
+      lab <- paste(letters[j], ") ", tt, sep = "")
+      .plotLabel(lab, above = T)
+    }
+    yp <- colMeans(yMu)
+    wy <- match(colnames(yMu), colnames(y))
+    opt <- list(xlabel = "Observed", xlimit = NULL, ylimit = NULL, 
+      breaks = breaks, wide = wide, LOG = LOG, fill = "lightblue", 
+      box.col = "darkblue", POINTS = T, ptcol = "darkblue")
+    .plotObsPred(colMeans(y[, wy]), yp, opt = opt)
+    abline(0, 1, lty = 2, lwd = 3, col = "brown")
+    abline(h = mean(y1), lty = 2, lwd = 3, col = "tan")
+    .plotLabel(paste(letters[j + 1], ") By Species", sep = ""), 
+      above = T)
+  }
+  xb <- xunstand
+  if (is.null(xb)) 
+    xb <- x
+  bk <- list(x = xb, sdList = sdList, piList = piList, prPresent = prPresent, 
+    ematrix = ematrix, effortSource = effortSource)
+  if (FULL) 
+    bk <- append(bk, list(ychains = ygibbs))
+  bk
+}
