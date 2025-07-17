@@ -1,0 +1,27 @@
+✅ Current REDUCT patch summary:
+You've modified .gjamPrediction to include:
+
+Step 1: Inject REDUCT definition early:
+r
+Copy
+Edit
+body(patched_gjamPrediction)[[2]] <- quote({
+  REDUCT <- output$modelList$reductList$REDUCT
+})
+Step 2: Guard REDUCT-related logic with isTRUE():
+r
+Copy
+Edit
+body(patched_gjamPrediction)[[3]] <- quote({
+  if (isTRUE(REDUCT)) {
+    otherpar <- output$modelList$reductList$otherpar
+    N <- otherpar$N
+    r <- otherpar$r
+    rndEff <- y * 0
+    sigmaerror <- otherpar$sigmaerror
+    if (!NEWX) 
+      SAMEX <- TRUE
+    if (COND) 
+      stop("conditional prediction not currently implemented with dimension reduction")
+  }
+})
