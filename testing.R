@@ -23,8 +23,18 @@ site_data <- neon_data %>% filter(siteID == site_id)
 #site_data <- site_data %>%
 #  mutate(mean_cover = as.numeric(mean_cover))
 
+countSp <- site_data %>%
+  select(taxonID) %>%
+  unique() %>%
+  nrow()
+
+
+test_result <- fit_gjam_model_test(site_data, n_plots = 5)
+
 # Try running the GJAM model manually
 fit_result <- fit_gjam_model(site_data)
+
+fit <- fit_gjam_model(site_data)
 
 table(fit_result$xdata$year, useNA = "always")
 

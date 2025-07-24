@@ -1,7 +1,4 @@
 
-
-### line 15
-
 # Get the original function
 patched_gjamPrediction <- getFromNamespace(".gjamPrediction", "gjam")
 
@@ -14,31 +11,36 @@ body_lines <- as.list(body(patched_gjamPrediction))
 # Patch 1: Force REDUCT to FALSE
 body_lines[[2]] <- quote(REDUCT <- FALSE)
 
-# Patch 2: Remove the original `if (REDUCT)` block
-body_lines[[4]] <- quote({})
+# Remove *all* lines that contain `if (REDUCT)` — multiple may exist
+body_lines <- Filter(function(line) {
+  !(is.call(line) && identical(line[[1]], as.name("if")) && any(grepl("REDUCT", deparse(line))))
+}, body_lines)
 
-# ✅ Patch 3: Ensure x and xnew are defined
+# Patch 2: Remove the original `if (REDUCT)` block
+#body_lines[[4]] <- quote({})
+
+# Patch 3: Ensure x and xnew are defined
 ensure_x_block <- quote({
-  if (!exists("x")) x <- output$xdata
-  if (!exists("xnew")) xnew <- newdata$xdata
+  x <- output$xdata
+  xnew <- newdata$xdata
 })
 body_lines <- append(body_lines, list(ensure_x_block), after = 6)
 
-# ✅ Patch 4: Convert x and xnew to numeric matrices
+# Patch 4: Convert x and xnew to numeric matrices
 force_numeric_x <- quote({
   message("🔁 Converting x and xnew to numeric model matrices")
-  x <- model.matrix(~ . - 1, data = x)
-  xnew <- model.matrix(~ . - 1, data = xnew)
+  x <- model.matrix(output$formula, data = as.data.frame(x))
+  xnew <- model.matrix(output$formula, data = as.data.frame(xnew))
 })
 body_lines <- append(body_lines, list(force_numeric_x), after = 7)
 
-# ✅ Patch 5: Define y from output
+# Patch 5: Define y from output
 inject_y <- quote({
   y <- output$y
 })
 body_lines <- append(body_lines, list(inject_y), after = 8)
 
-# ✅ Patch 6: Guard for effortMat
+# Patch 6: Guard for effortMat
 safe_effort_block <- quote({
   message("🔧 Checking for effortMat and rowOrder...")
   effortMat <- if (!is.null(output$effortMat)) output$effortMat else NULL
@@ -52,7 +54,7 @@ safe_effort_block <- quote({
 })
 body_lines <- append(body_lines, list(safe_effort_block), after = 9)
 
-# ✅ Patch 7: Guard for holdoutIndex
+# Patch 7: Guard for holdoutIndex
 safe_holdout_block <- quote({
   if (!is.null(output$inputs$holdoutIndex)) {
     holdoutIndex <- which(output$inputs$holdoutIndex == 1)
@@ -62,7 +64,7 @@ safe_holdout_block <- quote({
 })
 body_lines <- append(body_lines, list(safe_holdout_block), after = 10)
 
-# ✅ Patch 8: Check matrix solve
+# Patch 8: Check matrix solve
 linmod_diag <- quote({
   message("🔍 Diagnostic: attempting t(x) %*% x and solve()")
   tryCatch({
@@ -75,7 +77,7 @@ linmod_diag <- quote({
 })
 body_lines <- append(body_lines, list(linmod_diag), after = 11)
 
-# ✅ Patch 9: Post-effort diagnostics
+# Patch 9: Post-effort diagnostics
 diagnostic_block <- quote({
   message("🔍 Post-effort diagnostics...")
   message("✔️ output$type: ", output$type)
@@ -88,7 +90,7 @@ diagnostic_block <- quote({
 })
 body_lines <- append(body_lines, list(diagnostic_block), after = 12)
 
-# ✅ Patch 10: Guard against output$type == 'traits'
+# Patch 10: Guard against trait models
 guard_traits_block <- quote({
   message("📍 REACHED LINE 14")
   message("🔍 Evaluating output$type condition...")
@@ -100,16 +102,16 @@ guard_traits_block <- quote({
 })
 body_lines <- append(body_lines, list(guard_traits_block), after = 13)
 
-# ✅ Patch 11: Next line checkpoint
+# Patch 11: Line 15 checkpoint
 checkpoint_line15 <- quote({
   message("📍 REACHED LINE 15")
 })
 body_lines <- append(body_lines, list(checkpoint_line15), after = 14)
 
+# Patch 12: Inspect modelList
 line16_trace <- quote({
   message("📍 REACHED LINE 16")
   message("🔍 Inspecting key objects before linear predictor calculations...")
-  
   if (!is.null(output$modelList)) {
     ml <- output$modelList
     message("✔️ modelList found")
@@ -123,150 +125,129 @@ line16_trace <- quote({
     stop("❌ output$modelList is NULL — cannot proceed.")
   }
 })
-
 body_lines <- append(body_lines, list(line16_trace), after = 15)
 
-# ✅ Patch 12: Rebuild modelList if incomplete
+# Patch 13: Rebuild modelList from chains if needed
+# Patch 13: Rebuild modelList from chains if needed
 reconstruct_modelList_block <- quote({
   message("🧩 Reconstructing missing modelList components from chains")
-  
   chains <- output$chains
   modelList <- output$modelList
   
   if (!is.null(chains$bgibbs)) {
     beta_raw <- chains$bgibbs
     message("✔️ betaBeta raw dims: ", paste(dim(beta_raw), collapse = " x "))
-    
     P <- ncol(x)
     S <- ncol(y)
     ng <- nrow(beta_raw)
-    
     betaBeta <- array(NA, dim = c(ng, P, S))
     for (i in 1:ng) {
       betaBeta[i,,] <- matrix(beta_raw[i,], nrow = P, ncol = S)
     }
     message("✔️ betaBeta reshaped to: ", paste(dim(betaBeta), collapse = " x "))
-  } else {
-    stop("❌ Missing chains$bgibbs")
-  }
+  } else stop("❌ Missing chains$bgibbs")
   
   if (!is.null(chains$sgibbs)) {
     sigma_raw <- chains$sgibbs
     message("✔️ sigmaSave raw dims: ", paste(dim(sigma_raw), collapse = " x "))
     
-    S <- ncol(y)
     ng <- nrow(sigma_raw)
+    actual_cols <- ncol(sigma_raw)
     
-    if (is.null(dim(sigma_raw)) || length(dim(sigma_raw)) != 3) {
-      # Expect a flat matrix: [ng x S^2]
-      if (ncol(sigma_raw) != S * S) {
-        stop(paste("❌ sigma_raw has", ncol(sigma_raw), "columns but expected", S * S, "(S × S)"))
-      }
-      sigmaSave <- array(NA, dim = c(ng, S, S))
-      for (i in 1:ng) {
-        sigmaSave[i,,] <- matrix(sigma_raw[i, ], nrow = S, ncol = S)
-      }
-      message("✔️ sigmaSave reshaped to: ", paste(dim(sigmaSave), collapse = " x "))
+    if (!is.null(output$modelList$betaBeta)) {
+      inferred_S <- dim(output$modelList$betaBeta)[3]
+      message("🔍 Inferred S from betaBeta: ", inferred_S)
     } else {
-      # Check if it's already the correct shape
-      if (!all(dim(sigma_raw)[2:3] == S)) {
-        stop(paste("❌ sigma_raw is 3D but inner dimensions are not S x S — found:",
-                   paste(dim(sigma_raw)[2:3], collapse = " x "), "expected:", S, "x", S))
-      }
-      sigmaSave <- sigma_raw
-      message("✔️ sigmaSave already has correct 3D shape")
+      inferred_S <- round(sqrt(actual_cols))
+      message("🔍 Inferred S from sigma_raw column count: ", inferred_S)
     }
     
-  } else {
-    stop("❌ Missing chains$sgibbs")
-  }
-  
+    expected_cols <- inferred_S * inferred_S
+    
+    if (actual_cols != expected_cols) {
+      message("⚠️ sigma_raw has ", actual_cols, " columns but expected ", expected_cols,
+              " (", inferred_S, " x ", inferred_S, ") — using inferred reduced shape")
+    }
+    
+    if (inferred_S %% 1 != 0) {
+      stop("❌ sigma_raw column count is not a perfect square — cannot reshape to square covariance matrices.")
+    }
+    
+    sigmaSave <- array(NA, dim = c(ng, inferred_S, inferred_S))
+    for (i in 1:ng) {
+      sigmaSave[i,,] <- matrix(sigma_raw[i, ], nrow = inferred_S, ncol = inferred_S)
+    }
+    message("✔️ sigmaSave reshaped to: ", paste(dim(sigmaSave), collapse = " x "))
+    
+  } else stop("❌ Missing chains$sgibbs")
   
   modelList$betaBeta <- betaBeta
   modelList$sigmaSave <- sigmaSave
   modelList$ng <- ng
   modelList$reDraw <- ng
   output$modelList <- modelList
-})
-body_lines <- append(body_lines, list(reconstruct_modelList_block), after = 16)
-
-post_reconstruct_check <- quote({
-  message("📍 REACHED LINE 17")
-  message("🔎 Confirming modelList integrity after reconstruction...")
-  message("🔸 modelList$reDraw: ", output$modelList$reDraw)
-  message("🔸 modelList$ng: ", output$modelList$ng)
-  message("🔸 betaBeta dims: ", paste(dim(output$modelList$betaBeta), collapse = " x "))
+  
+  message("🔁 After assignment: reDraw = ", output$modelList$reDraw)
+  
 })
 
 body_lines <- append(body_lines, list(post_reconstruct_check), after = 17)
 
+# Patch 15: Set output$type if missing
 set_model_type <- quote({
   if (is.null(output$type)) {
-    output$type <- "CC"  # Continuous Cover — your actual response model
+    output$type <- "CC"
     message("🛠️ Manually set output$type to: ", output$type)
   }
 })
-
 body_lines <- append(body_lines, list(set_model_type), after = 17)
 
+# Patch 16: Test linear predictor step
 posterior_loop_wrap <- quote({
   message("📍 REACHED LINE 18")
   message("🌀 Entering posterior predictive loop...")
-  
   tryCatch({
     for (k in 1:output$modelList$reDraw) {
       if (k == 1) message("🔁 Starting first iteration of posterior loop...")
-      
       beta_k <- output$modelList$betaBeta[k,,]
       dim(beta_k) <- c(ncol(xnew), length(output$modelList$typeNames))
       message("✔️ Forced beta_k dims: ", paste(dim(beta_k), collapse = " x "))
-      
       xb <- xnew %*% beta_k
       message("✔️ xnew %*% beta_k successful, result dim: ", paste(dim(xb), collapse = " x "))
-      
       break
     }
-    
     message("✅ Posterior loop structure intact")
-    
   }, error = function(e) {
     message("❌ Posterior loop failed: ", e$message)
   })
 })
-
 body_lines <- append(body_lines, list(posterior_loop_wrap), after = 18)
 
+# Patch 17: Post-xb modelType confirmation
 post_xb_block <- quote({
   message("📍 REACHED LINE 19")
   message("🔍 Checking type-specific post-processing...")
-  
   type <- output$type
   message("✔️ model type: ", type)
-  
-  if (is.null(type)) {
-    stop("❌ output$type is NULL — model type must be specified.")
-  }
-  
+  if (is.null(type)) stop("❌ output$type is NULL — model type must be specified.")
   typeNames <- output$modelList$typeNames
-  if (is.null(typeNames)) {
-    stop("❌ modelList$typeNames is NULL — required for post-processing.")
-  }
-  
+  if (is.null(typeNames)) stop("❌ modelList$typeNames is NULL — required for post-processing.")
   message("✔️ typeNames length: ", length(typeNames))
 })
-
 body_lines <- append(body_lines, list(post_xb_block), after = 19)
 
-# Rebuild the patched function
+# Rebuild the function
 body(patched_gjamPrediction) <- as.call(c(quote(`{`), body_lines))
 
 
+# Ensure y is available in the fit object
 manual_fit$y <- manual_fit$inputs$y
 
-manual_pred <- tryCatch({
+# Run the patched prediction
+test_pred <- tryCatch({
   patched_gjamPrediction(
     output = manual_fit,
-    newdata = list(xdata = x2_df),
+    newdata = list(xdata = xnew),
     y2plot = NULL,
     PLOT = FALSE,
     ylim = NULL,
@@ -276,3 +257,11 @@ manual_pred <- tryCatch({
   message("❌ Patched prediction failed: ", e$message)
   return(NULL)
 })
+
+# Optionally inspect the structure of the result
+if (!is.null(test_pred)) {
+  message("✅ Patched prediction completed successfully")
+  print(str(test_pred, max.level = 1))
+} else {
+  message("❌ Prediction result is NULL")
+}
