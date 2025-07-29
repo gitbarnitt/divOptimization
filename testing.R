@@ -29,10 +29,16 @@ countSp <- site_data %>%
   nrow()
 
 
-test_result <- fit_gjam_model_test(site_data, n_plots = 5)
+#test_result <- fit_gjam_model_test(site_data, n_plots = 5)
+
+test_result <- fit_gjam_model_test(site_data)
+
+fit <- test_result
 
 # Try running the GJAM model manually
 fit_result <- fit_gjam_model(site_data)
+
+
 
 fit <- fit_gjam_model(site_data)
 
