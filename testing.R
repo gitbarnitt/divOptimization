@@ -1,19 +1,256 @@
 library(dplyr)
 library(tidyr)
 library(gjam)
+library(ggplot2)
 source("R/load_neon_data.R")
 source("R/fit_gjam_model.R")
 #source("R/simulate_change.R")
 source("R/simulate_yearly_changes.R")
 #source("R/simulate_yearly_changes.R", echo = TRUE)
 
-# pull in raw data
+
+
+################# 
+#pull in raw data
 #rawNEONdata <- readRDS('C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
 
 #raw <- rawNEONdata
 
-# Load the full dataset
+
+#################
+# Load the data and do some filtering for testing
 neon_data <- load_neon_data("data/plant_data.rds")
+
+# Subset to a specific site 
+site_id <- "JERC"
+site_data <- neon_data %>% filter(siteID == site_id)
+
+set.seed(123)
+plot_ids <- site_data %>%
+  group_by(plotID) %>%
+  filter(n_distinct(year) >= 2) %>%
+  pull(plotID) %>%
+  unique() %>%
+  sample(15)
+
+site_data_subset <- site_data %>% filter(plotID %in% plot_ids)
+
+
+#################
+#run gjam
+#test_result <- fit_gjam_model_test(site_data)
+test_result <- fit_gjam_model_test(site_data_subset)
+
+# Check
+table(site_data_subset$year)
+
+# Now run the model
+#test_result <- fit_gjam_model_test(site_data_subset, n_plots = 10)
+
+# Confirm year and nlcdClass in fitted model
+table(test_result$fit$xdata$year)
+table(test_result$fit$xdata$nlcdClass)
+
+#some testing it is working
+# Step 1: Fit the model on the subsetted site data
+#test_result <- fit_gjam_model_test(site_data)
+
+# Step 2: Extract fit and data components
+fit <- test_result$fit
+xdata <- test_result$xdata
+species <- colnames(test_result$ydata)
+
+# Step 3: Create new covariate matrix (xnew) with constant land cover, different years
+ref_row <- xdata[1, ]
+xnew <- as.data.frame(ref_row[rep(1, 2), ])
+
+# Explicit levels ensure contrasts are valid
+xnew$year <- factor(c("2015", "2016"), levels = c("2015", "2016"))
+xnew$nlcdClass <- factor(xnew$nlcdClass, levels = unique(xdata$nlcdClass))
+
+rownames(xnew) <- c("baseline", "year_2016")
+
+# Step 4: Generate posterior predictions
+post_preds <- manual_posterior_predict(test_result, xnew)
+
+# Step 5: Pick a species to visualize
+target_species <- species[1]  # or manually set e.g., "ACGR2"
+
+# Step 6: Extract predictions to tidy data frame
+pred_df <- data.frame(
+  value = c(post_preds[, "baseline", target_species],
+            post_preds[, "year_2016", target_species]),
+  condition = rep(c("2015", "2016"), each = dim(post_preds)[1])
+)
+
+# Step 7: Plot using ggplot
+library(ggplot2)
+ggplot(pred_df, aes(x = value, fill = condition)) +
+  geom_density(alpha = 0.6) +
+  labs(
+    title = paste("Posterior Predictions for", target_species, ": 2015 vs 2016"),
+    x = "Predicted Percent Cover",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+
+#################
+#some testing of simulate change
+# 1. Load the simulate_change() function if not already sourced
+# source("R/simulate_change.R")
+
+# 2. Run the function using the fitted test model
+change_result <- simulate_change(
+  fit = test_result,
+  change_year = c("2015", "2016"),
+  plot_index = 1
+)
+
+# 3. Inspect dimensions and names
+str(change_result)
+# Expect: [n_iter, 2, n_species]
+#         dimnames: [[NULL]], ["baseline", "changed"], [species names]
+
+# 4. Choose a species to visualize
+target_species <- dimnames(change_result)[[3]][1]  # e.g., "ACGR2"
+
+# 5. Convert to tidy format for ggplot
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+pred_df <- data.frame(
+  value = c(change_result[, "baseline", target_species],
+            change_result[, "changed", target_species]),
+  condition = rep(c("2015", "2016"), each = dim(change_result)[1])
+)
+
+# 6. Plot posterior draws for one species
+ggplot(pred_df, aes(x = value, fill = condition)) +
+  geom_density(alpha = 0.6) +
+  labs(
+    title = paste("Posterior Predictions for", target_species, "in 2015 vs 2016"),
+    x = "Predicted Percent Cover",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+
+
+
+#################
+#looking at simulate change
+change_result <- simulate_change(test_result, change_year = c("2015", "2016"))
+summary_df <- summarize_change(change_result)
+library(ggplot2)
+ggplot(summary_df, aes(x = diff)) +
+  geom_density(fill = "steelblue", alpha = 0.6) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  labs(
+    title = paste("Posterior Change in Cover:", dimnames(change_result)[[3]][1]),
+    x = "Change in Predicted Cover (2016 - 2015)",
+    y = "Density"
+  ) +
+  theme_minimal()
+
+
+#################
+#testing calculate_detection_probability
+# Fit model and generate posterior predictions
+#already one this:
+#test_result <- fit_gjam_model_test(site_data_subset)
+#slight variation on this:
+# post_array <- simulate_change(test_result, change_year = c("2015", "2016"), plot_index = 1)
+# 
+# detection_summary <- calculate_detection_probability(
+#   post_array   = post_array,
+#   site_id      = test_result$site,
+#   sample_size  = length(unique(site_data_subset$plotID)),  # e.g., 15
+#   change_year  = c("baseline", "changed")
+# )
+
+#later
+change_result <- simulate_change(
+  fit = test_result,
+  change_year  = c("2015", "2016"),
+  plot_index   = 1
+)
+
+summary_df <- calculate_detection_probability(
+  posterior_array = change_result,
+  site_id         = "JERC",
+  sample_size     = 15,
+  year_pair       = c("2015", "2016")
+)
+
+
+#################
+#test loop_simulate_changes()
+# test_result is the output of fit_gjam_model_test()
+posterior_list <- loop_simulate_changes(test_result)
+str(posterior_list)
+
+#this is temporary - does not work
+sample_size = length(unique(test_result$fit$xdata$plotID))
+
+summary_list <- purrr::imap(posterior_list, ~ 
+                              calculate_detection_probability(
+                                posterior_preds = .x,
+                                year_pair = strsplit(.y, "_")[[1]],
+                                site_id = test_result$site,
+                                sample_size = length(unique(test_result$xdata$plotID))
+                              )
+)
+summary_df <- dplyr::bind_rows(summary_list)
+
+
+
+posterior_preds <- manual_posterior_predict(test_result, xnew)
+str(posterior_preds)
+
+
+simChange <- simulate_change(test_result, change_year = c("2015", "2016"))
+
+########
+summary_list <- purrr::imap(posterior_list, ~ 
+                              calculate_detection_probability(
+                                posterior_preds = .x,
+                                year_pair = strsplit(.y, "_")[[1]],
+                                site_id = test_result$site,
+                                sample_size = length(unique(test_result$fit$xdata$plotID))
+                              )
+)
+
+summary_df <- dplyr::bind_rows(summary_list)
+
+dplyr::glimpse(summary_df)
+# or
+head(summary_df, 10)
+
+library(ggplot2)
+
+ggplot(summary_df, aes(x = year_changed, y = detect_prob, color = species)) +
+  geom_line(aes(group = species), alpha = 0.4) +
+  labs(title = "Detection Probability by Species and Year Pair",
+       y = "Detection Probability", x = "Changed Year") +
+  theme_minimal()
+
+
+########
+#sensitivity test
+# Quick test: 2 sample sizes, 2 replicates each
+sensitivity_test <- run_sample_size_sensitivity(
+  full_site_data = site_data,
+  site_id        = site_id,
+  sample_sizes   = c(5, 10),   # keep small for test
+  n_replicates   = 2,
+  seed           = 42
+)
+
+
+
+
 
 # Subset to a specific site with known issues
 site_id <- "JERC"

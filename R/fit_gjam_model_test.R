@@ -1,15 +1,10 @@
-fit_gjam_model_test <- function(site_data, n_plots = 10, seed = 123) {
+fit_gjam_model_test <- function(site_data, seed = 123) {
   library(dplyr)
   library(tidyr)
   library(gjam)
   
   set.seed(seed)
   site_id <- unique(site_data$siteID)
-  
-  # ✅ Subset only n plots for faster testing (preserves structure)
-  sampled_plots <- unique(site_data$plotID)
-  sampled_plots <- sampled_plots[seq_len(min(n_plots, length(sampled_plots)))]
-  site_data <- site_data %>% filter(plotID %in% sampled_plots)
   
   # ---------- Pivot to wide ----------
   y_wide <- site_data %>%
@@ -21,10 +16,14 @@ fit_gjam_model_test <- function(site_data, n_plots = 10, seed = 123) {
     )
   
   # ---------- Extract predictors ----------
+  #depricated 20250802
+  # x_data <- y_wide %>%
+  #   select(year, nlcdClass) %>%
+  #   mutate(year = as.factor(year),
+  #          nlcdClass = as.factor(nlcdClass))
   x_data <- y_wide %>%
-    select(year, nlcdClass) %>%
-    mutate(year = as.factor(year),
-           nlcdClass = as.factor(nlcdClass))
+    select(plotID, year, nlcdClass) %>%
+    mutate(across(c(year, nlcdClass, plotID), as.factor))
   
   # ---------- Extract response matrix ----------
   y_matrix <- y_wide %>%

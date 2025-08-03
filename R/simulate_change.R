@@ -1,43 +1,23 @@
-# R/simulate_change.R
-
-simulate_change <- function(fit) {
-  if (is.null(fit) || is.null(fit$fit)) {
-    warning("Empty or failed GJAM fit.")
-    return(NULL)
+simulate_change <- function(
+    fit,
+    change_year,       # <-- must now be provided explicitly
+    plot_index = 1
+) {
+  # Validate input
+  if (!all(change_year %in% levels(fit$xdata$year))) {
+    stop("❌ One or more specified years not in model levels.")
   }
   
-  model <- fit$fit
-  xdata <- model$xdata
-  if (!("year" %in% names(xdata))) {
-    warning("No 'year' variable found in model covariates.")
-    return(NULL)
-  }
+  # Step 1: Use a reference plot from xdata
+  ref_row <- fit$xdata[plot_index, ]
   
-  # Identify unique years and simulate a +20% change in the latest year
-  year_range <- sort(unique(xdata$year))
-  if (length(year_range) < 2) {
-    warning("Only one year of data present; skipping simulation.")
-    return(NULL)
-  }
+  # Step 2: Build new covariate matrix for two conditions
+  xnew <- as.data.frame(ref_row[rep(1, 2), ])
+  xnew$year <- factor(change_year, levels = levels(fit$xdata$year))
+  xnew$nlcdClass <- factor(xnew$nlcdClass, levels = levels(fit$xdata$nlcdClass))
+  rownames(xnew) <- c("baseline", "changed")
   
-  year_new <- max(year_range)
-  year_old <- min(year_range)
-  
-  # Create a new prediction dataset simulating a 20% increase in the latest year
-  x_pred <- xdata
-  x_pred$year <- year_new
-  
-  pred <- tryCatch({
-    gjam::predict.gjam(model, newdata = list(xdata = x_pred))
-  }, error = function(e) {
-    warning("Prediction failed: ", conditionMessage(e))
-    return(NULL)
-  })
-  
-  list(
-    site = fit$site,
-    old_year = year_old,
-    new_year = year_new,
-    pred = pred
-  )
+  # Step 3: Predict
+  preds <- manual_posterior_predict(fit, xnew)
+  return(preds)  # dims: [draws, condition (2), species]
 }
