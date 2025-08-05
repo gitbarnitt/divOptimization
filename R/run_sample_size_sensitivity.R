@@ -23,7 +23,7 @@ run_sample_size_sensitivity <- function(
       xdata_subset <- dplyr::filter(xdata, plotID %in% sampled_plots)
       
       # Simulate predictions for all year pairs
-      posterior_list <- loop_simulate_changes(
+      posterior_list <- loop_simulate_changes_with_index(     #CHANGED 20250805: was posterior_list <- loop_simulate_changes
         fit = fit_result$fit,
         plot_index = which(xdata$plotID %in% sampled_plots)
       )

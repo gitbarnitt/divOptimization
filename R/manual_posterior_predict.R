@@ -1,7 +1,7 @@
 manual_posterior_predict <- function(fit, xnew) {
-  betaBeta <- fit$chains$bgibbs  # ✅ CHANGED: was fit$fit$chains$bgibbs
-  species <- colnames(fit$ydata)
-  n_species <- length(species)
+  betaBeta <- fit$modelList$betaBeta  # CHANGED 20250805: was fit$chains$bgibbs ✅ CHANGED: was fit$fit$chains$bgibbs
+  species <- colnames(fit$y) #CHANGED 20250805: was colnames(fit$ydata)
+  n_species <- length(species) 
   predictors <- colnames(fit$xdata)
   
   model_formula <- ~ year + nlcdClass

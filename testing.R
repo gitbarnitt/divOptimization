@@ -336,6 +336,165 @@ ggplot(summary_df, aes(x = year_changed, y = detect_prob, color = species)) +
        y = "Detection Probability", x = "Changed Year") +
   theme_minimal()
 
+##20250805
+# Load required libraries
+library(purrr)
+
+# Set number of plots to use for simulation
+n_plots <- 5  # or 10 or whatever works for your site
+
+# Run loop_simulate_changes using the fitted GJAM object
+posterior_list <- loop_simulate_changes(
+  fit     = test_result$fit,
+  n_plots = n_plots
+)
+
+#check structure result 20250805
+# List names = year pairs
+names(posterior_list)
+
+# Check structure of the first prediction array
+str(posterior_list[[1]])
+
+# Dimensions of each posterior array
+purrr::map(posterior_list, ~ dim(.x))
+
+# Species names in dimnames
+dimnames(posterior_list[[1]])[[3]][1:10]  # First 10 species
+
+library(ggplot2)
+
+# Pick a year pair and species
+year_pair <- names(posterior_list)[1]  # e.g. "2014_2015"
+pred_array <- posterior_list[[year_pair]]
+species_name <- dimnames(pred_array)[[3]][1]  # First species
+
+# Build tibble of posterior draws
+posterior_df <- tibble::tibble(
+  baseline = pred_array[, "baseline", species_name],
+  changed  = pred_array[, "changed",  species_name]
+) %>%
+  tidyr::pivot_longer(cols = everything(), names_to = "condition", values_to = "prediction")
+
+# Plot
+ggplot(posterior_df, aes(x = prediction, fill = condition)) +
+  geom_density(alpha = 0.6) +
+  labs(title = glue::glue("Posterior predictions for {species_name} ({year_pair})"),
+       x = "Predicted cover", y = "Density") +
+  theme_minimal()
+
+#jump into calc_detection_prob()
+# Run detection probability on one year pair
+diff_stats <- calculate_detection_probability(
+  posterior_preds = pred_array,
+  year_pair       = strsplit(year_pair, "_")[[1]],
+  site_id         = test_result$site,
+  sample_size     = 5
+)
+
+print(diff_stats)
+
+#loop over years
+full_detection_summary <- purrr::imap_dfr(
+  posterior_list,
+  function(pred_array, label) {
+    calculate_detection_probability(
+      posterior_preds = pred_array,
+      year_pair       = strsplit(label, "_")[[1]],
+      site_id         = test_result$site,
+      sample_size     = 5
+    )
+  }
+)
+
+library(dplyr)
+top_species <- full_detection_summary %>%
+  filter(detect_prob > 0.8 | detect_prob < 0.2) %>%
+  arrange(desc(abs(mean_diff))) %>%
+  slice_head(n = 10)
+
+print(top_species)
+
+
+######
+#testing run_sample_size_sensitivity() 20250805
+
+# Example: test with small values
+sensitivity_results <- run_sample_size_sensitivity(
+  fit_result    = test_result,
+  sample_sizes  = c(5, 10),
+  n_replicates  = 2,
+  seed          = 42
+)
+
+library(dplyr)
+library(ggplot2)
+
+library(dplyr)
+library(ggplot2)
+
+# View dimensions
+cat("✅ Rows:", nrow(sensitivity_results), "\n")
+cat("✅ Columns:", ncol(sensitivity_results), "\n")
+print(colnames(sensitivity_results))
+
+# 1. Summary by sample size and year pair
+summary_by_group <- sensitivity_results %>%
+  dplyr::group_by(sample_size, year_baseline, year_changed) %>%
+  dplyr::summarise(
+    n_species = n(),
+    n_high_detection = sum(detect_prob > 0.8, na.rm = TRUE),
+    n_low_detection  = sum(detect_prob < 0.2, na.rm = TRUE),
+    mean_detect_prob = mean(detect_prob, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  dplyr::arrange(sample_size, year_baseline)
+
+print(summary_by_group)
+
+# 2. Top species by magnitude of change
+top_species <- sensitivity_results %>%
+  filter(detect_prob > 0.8 | detect_prob < 0.2) %>%
+  arrange(desc(abs(mean_diff))) %>%
+  slice_head(n = 10)
+
+print(top_species)
+
+# 3. Distribution of detect_prob by sample size
+ggplot(sensitivity_results, aes(x = detect_prob, fill = factor(sample_size))) +
+  geom_histogram(position = "identity", alpha = 0.5, bins = 30) +
+  labs(
+    title = "Detection Probability by Sample Size",
+    x = "Detection Probability",
+    y = "Count",
+    fill = "Sample Size"
+  ) +
+  theme_minimal()
+
+# 4. Optional: check replicate success/failure
+table(sensitivity_results$fit_status, sensitivity_results$sample_size)
+
+          
+
+
+
+
+
+
+
+# # Check structure of result
+# str(posterior_list, max.level = 1)
+# 
+# # Optionally, peek at one of the year pairs
+# example_pair <- names(posterior_list)[1]
+# example_array <- posterior_list[[example_pair]]
+# 
+# dim(example_array)  # Should be [iterations, 2, species]
+
+
+
+
+
 
 ########
 #sensitivity test
