@@ -3,9 +3,9 @@ library(tidyr)
 library(gjam)
 library(ggplot2)
 source("R/load_neon_data.R")
-source("R/fit_gjam_model.R")
+#source("R/fit_gjam_model.R")
 #source("R/simulate_change.R")
-source("R/simulate_yearly_changes.R")
+#source("R/simulate_yearly_changes.R")
 #source("R/simulate_yearly_changes.R", echo = TRUE)
 
 
@@ -94,6 +94,53 @@ ggplot(pred_df, aes(x = value, fill = condition)) +
   ) +
   theme_minimal()
 
+#################
+#some testing of manual_posterior_predict after alignment with fit_gjam_model_test() 20250804
+# ----------------------------------------
+# Step 1: Select 2 example rows from fit$xdata
+# ----------------------------------------
+set.seed(42)
+test_xdata <- droplevels(fit$xdata[sample(nrow(fit$xdata), 2), ])
+
+# Make sure 'year' and 'nlcdClass' have correct levels
+test_xdata$year <- factor(test_xdata$year, levels = levels(fit$xdata$year))
+test_xdata$nlcdClass <- factor(test_xdata$nlcdClass, levels = levels(fit$xdata$nlcdClass))
+
+# ----------------------------------------
+# Step 2: Run manual_posterior_predict()
+# ----------------------------------------
+posterior_array <- manual_posterior_predict(fit, test_xdata)
+
+# ----------------------------------------
+# Step 3: Validate shape and contents
+# ----------------------------------------
+
+cat("✅ posterior_array dimensions:\n")
+print(dim(posterior_array))  # should be: [n_iter, 2 rows, n_species]
+
+stopifnot(length(dim(posterior_array)) == 3)
+stopifnot(dim(posterior_array)[2] == 2)  # 2 rows from test_xdata
+stopifnot(dim(posterior_array)[1] == nrow(fit$chains$bgibbs))  # posterior draws
+stopifnot(dim(posterior_array)[3] == ncol(fit$ydata))  # number of species
+
+# ----------------------------------------
+# Step 4: Print example posterior slice
+# ----------------------------------------
+
+cat("\n✅ Example posterior for 1 species:\n")
+species_index <- sample(1:dim(posterior_array)[3], 1)
+draws_for_species <- posterior_array[, , species_index]
+
+print(draws_for_species)  # [iterations, 2 rows]
+
+# ----------------------------------------
+# Step 5: Success message
+# ----------------------------------------
+cat("\n🎉 manual_posterior_predict() ran successfully and returned valid output.\n")
+
+
+
+
 
 #################
 #some testing of simulate change
@@ -154,6 +201,57 @@ ggplot(summary_df, aes(x = diff)) +
   ) +
   theme_minimal()
 
+####updated simulate change 20250804
+# ------------------------------
+# SETUP
+# ------------------------------
+
+# Choose a subset of plots (e.g., 5 random rows from xdata)
+set.seed(123)  # For reproducibility
+xdata_subset <- droplevels(fit$xdata[sample(nrow(fit$xdata), 5), ])
+
+# Pick two valid year levels from the model
+valid_years <- levels(fit$xdata$year)
+change_year <- valid_years[1:2]
+
+# ------------------------------
+# RUN FUNCTION
+# ------------------------------
+
+# Run the updated simulate_change()
+posterior_array <- simulate_change(
+  fit = fit,
+  change_year = change_year,
+  xdata_subset = xdata_subset
+)
+
+# ------------------------------
+# CHECK OUTPUT
+# ------------------------------
+
+# 1. Confirm shape of result
+cat("Posterior array dimensions:\n")
+print(dim(posterior_array))  # should be: [n_draws, 2, n_species]
+
+# 2. Confirm structure
+stopifnot(length(dim(posterior_array)) == 3)
+stopifnot(dim(posterior_array)[2] == 2)  # baseline vs changed
+
+# 3. Optional: visualize a species across conditions
+# Pick a random species
+spp_index <- sample(1:dim(posterior_array)[3], 1)
+
+# Plot the posterior draws for that species under baseline vs changed
+hist(posterior_array[, 1, spp_index], main = "Baseline", xlab = "Predicted % Cover", col = "lightblue")
+hist(posterior_array[, 2, spp_index], main = "Changed",  xlab = "Predicted % Cover", col = "salmon")
+
+# 4. Optional: inspect difference
+diff_vec <- posterior_array[, 2, spp_index] - posterior_array[, 1, spp_index]
+cat("Mean change in predicted cover (changed - baseline):", mean(diff_vec), "\n")
+
+# 5. Print summary for confidence
+cat("✅ simulate_change() ran successfully.\n")
+
 
 #################
 #testing calculate_detection_probability
@@ -183,6 +281,8 @@ summary_df <- calculate_detection_probability(
   sample_size     = 15,
   year_pair       = c("2015", "2016")
 )
+
+#checking on errors from ab
 
 
 #################

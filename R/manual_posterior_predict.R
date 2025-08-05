@@ -1,5 +1,5 @@
 manual_posterior_predict <- function(fit, xnew) {
-  betaBeta <- fit$fit$chains$bgibbs
+  betaBeta <- fit$chains$bgibbs  # ✅ CHANGED: was fit$fit$chains$bgibbs
   species <- colnames(fit$ydata)
   n_species <- length(species)
   predictors <- colnames(fit$xdata)
