@@ -9,52 +9,105 @@
 #' @return A tibble with columns: site, sample_size, year_pair, replicate, weighted_detection, fit_status
 #'
 #' @export
-evaluate_community_weighted_detection <- function(sensitivity_results, relative_cover_df) {
+evaluate_community_weighted_detection <- function(
+    sensitivity_results,
+    relative_cover_df,
+    draws_df = NULL
+) {
   library(dplyr)
   library(tidyr)
   
-  # Validate inputs
-  required_cols <- c("site", "sample_size", "species", "year_baseline", "year_changed",
-                     "detect_prob", "replicate", "fit_status", "plot_ids")
-  if (!all(required_cols %in% names(sensitivity_results))) {
+  # ✅ Check required input columns
+  required_summary_cols <- c("site", "sample_size", "species", "year_baseline", "year_changed",
+                             "detect_prob", "replicate", "fit_status", "plot_ids")
+  if (!all(required_summary_cols %in% names(sensitivity_results))) {
     stop("❌ sensitivity_results is missing required columns.")
   }
   
-  if (!all(c("siteID", "plotID", "year", "taxonID", "relative_cover") %in% names(relative_cover_df))) {
+  required_cover_cols <- c("siteID", "plotID", "year", "taxonID", "relative_cover")
+  if (!all(required_cover_cols %in% names(relative_cover_df))) {
     stop("❌ relative_cover_df is missing required columns.")
   }
   
-  # Expand plot_ids
+  # ✅ Expand plot IDs
   expanded_results <- sensitivity_results %>%
     mutate(year_baseline = as.integer(year_baseline),
            year_changed  = as.integer(year_changed)) %>%
     unnest(plot_ids, names_repair = "minimal") %>%
     rename(plotID = plot_ids)
   
-  # Prepare relative cover data
+  # ✅ Prepare cover data
   cover_df <- relative_cover_df %>%
     rename(site = siteID, species = taxonID)
   
-  # Join baseline and changed year cover
+  # ✅ Join baseline and changed years
   expanded_with_cover <- expanded_results %>%
     left_join(cover_df, by = c("site", "species", "plotID", "year_baseline" = "year")) %>%
     rename(relative_cover_baseline = relative_cover) %>%
     left_join(cover_df, by = c("site", "species", "plotID", "year_changed" = "year")) %>%
     rename(relative_cover_changed = relative_cover) %>%
     mutate(relative_cover_mean = rowMeans(cbind(relative_cover_baseline, relative_cover_changed), na.rm = TRUE)) %>%
-    filter(!is.na(relative_cover_mean))  # ✅ Exclude species with no data
+    filter(!is.na(relative_cover_mean))
   
-  # Summarise to community-level detection
+  # ✅ Point estimate: community-weighted mean
   community_scores <- expanded_with_cover %>%
     group_by(site, sample_size, year_baseline, year_changed, replicate, fit_status) %>%
     summarise(
       weighted_detection = sum(detect_prob * relative_cover_mean, na.rm = TRUE) /
         sum(relative_cover_mean, na.rm = TRUE),
-      n_species = n_distinct(species),  # ✅ Count unique species only
+      n_species = n_distinct(species),
       .groups = "drop"
     ) %>%
     mutate(year_pair = paste0(year_baseline, "_", year_changed)) %>%
     relocate(weighted_detection, .after = year_pair)
+  
+  # ✅ Optional: Add credible intervals from posterior draws
+  if (!is.null(draws_df)) {
+    # Convert year columns to integer to match cover
+    draws_df <- draws_df %>%
+      mutate(
+        year_baseline = as.integer(year_baseline),
+        year_changed  = as.integer(year_changed)
+      )
+    
+    # Posterior draws don't include plotID → use mean cover across plots
+    avg_cover_df <- relative_cover_df %>%
+      rename(site = siteID, species = taxonID) %>%
+      group_by(site, species, year) %>%
+      summarise(
+        mean_relative_cover = mean(relative_cover, na.rm = TRUE),
+        .groups = "drop"
+      )
+    
+    # Join relative cover to draws
+    draws_with_cover <- draws_df %>%
+      left_join(avg_cover_df, by = c("site", "species", "year_baseline" = "year")) %>%
+      rename(rc_baseline = mean_relative_cover) %>%
+      left_join(avg_cover_df, by = c("site", "species", "year_changed" = "year")) %>%
+      rename(rc_changed = mean_relative_cover) %>%
+      mutate(relative_cover_mean = rowMeans(cbind(rc_baseline, rc_changed), na.rm = TRUE)) %>%
+      filter(!is.na(relative_cover_mean))
+    
+    # Compute weighted detection per draw
+    ci_df <- draws_with_cover %>%
+      mutate(weighted = as.numeric(detected) * relative_cover_mean) %>%
+      group_by(site, sample_size, year_baseline, year_changed, replicate, draw) %>%
+      summarise(
+        weighted_detection = sum(weighted, na.rm = TRUE) /
+          sum(relative_cover_mean, na.rm = TRUE),
+        .groups = "drop"
+      ) %>%
+      group_by(site, sample_size, year_baseline, year_changed, replicate) %>%
+      summarise(
+        ci_lower = quantile(weighted_detection, 0.025),
+        ci_upper = quantile(weighted_detection, 0.975),
+        .groups = "drop"
+      )
+    
+    # Join back to community_scores
+    community_scores <- community_scores %>%
+      left_join(ci_df, by = c("site", "sample_size", "year_baseline", "year_changed", "replicate"))
+  }
   
   return(community_scores)
 }

@@ -4,9 +4,8 @@ run_sample_size_sensitivity <- function(
     n_replicates = 3,
     seed = 123
 ) {
-  # set.seed(seed) removed 20250806
+  #set.seed(seed) removed 20250806
   results <- list()
-  draws_all <- list()
   
   xdata <- fit_result$fit$xdata
   site_id <- fit_result$site
@@ -20,12 +19,12 @@ run_sample_size_sensitivity <- function(
     for (rep in seq_len(n_replicates)) {
       message(glue::glue("🔁 {site_id}: {size} plots, replicate {rep}"))
       
-      set.seed(seed + size * 100 + rep)  # Unique and reproducible per size-replicate
+      set.seed(seed + size * 100 + rep)  # Unique and reproducible per size-replicate added 20250806
       sampled_plots <- sample(all_plots, size)
       xdata_subset <- dplyr::filter(xdata, plotID %in% sampled_plots)
       
       # Simulate predictions for all year pairs
-      posterior_list <- loop_simulate_changes_with_index(
+      posterior_list <- loop_simulate_changes_with_index(     #CHANGED 20250805: was posterior_list <- loop_simulate_changes
         fit = fit_result$fit,
         plot_index = which(xdata$plotID %in% sampled_plots)
       )
@@ -40,28 +39,18 @@ run_sample_size_sensitivity <- function(
                                     )
       )
       
-      # Separate components
-      summary_df <- purrr::map_dfr(summary_list, "summary") %>%
+      # Combine and label
+      summary_df <- dplyr::bind_rows(summary_list) %>%
         dplyr::mutate(
           replicate  = rep,
           fit_status = "ok",
-          plot_ids   = list(as.character(sampled_plots))
-        )
-      
-      draws_df <- purrr::map_dfr(summary_list, "draws") %>%
-        dplyr::mutate(
-          replicate  = rep,
-          fit_status = "ok",
-          plot_ids   = list(as.character(sampled_plots))
+          plot_ids   = list(as.character(sampled_plots))  # ⬅️ NEW list-column added 20250806
         )
       
       results[[paste0("size_", size, "_rep_", rep)]] <- summary_df
-      draws_all[[paste0("size_", size, "_rep_", rep)]] <- draws_df
     }
   }
   
-  return(list(
-    summary = dplyr::bind_rows(results),
-    draws   = dplyr::bind_rows(draws_all)
-  ))
+  final_result <- dplyr::bind_rows(results)
+  return(final_result)
 }

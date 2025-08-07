@@ -10,13 +10,13 @@ calculate_detection_probability <- function(
     stop("posterior_preds must be a 3D array with second dim = 2 (baseline, changed).")
   }
   
-  n_species     <- dim(posterior_preds)[3]
+  n_species <- dim(posterior_preds)[3]
   species_names <- dimnames(posterior_preds)[[3]]
-  n_draws       <- dim(posterior_preds)[1]
   
   baseline <- posterior_preds[, 1, ]
   changed  <- posterior_preds[, 2, ]
-  diffs    <- changed - baseline
+  
+  diffs <- changed - baseline
   
   # Ensure diffs is a matrix even for 1 species
   if (n_species == 1) {
@@ -24,12 +24,13 @@ calculate_detection_probability <- function(
     colnames(diffs) <- species_names
   }
   
-  # Compute species-level summaries
+  # Compute statistics
   detect_prob <- colMeans(diffs > threshold)
   mean_diff   <- colMeans(diffs)
   ci_bounds   <- apply(diffs, 2, quantile, probs = c(0.025, 0.975), na.rm = TRUE)
   
-  summary <- tibble::tibble(
+  # Assemble result
+  tibble::tibble(
     site          = site_id,
     sample_size   = sample_size,
     species       = species_names,
@@ -40,23 +41,4 @@ calculate_detection_probability <- function(
     ci_lower      = ci_bounds[1, ],
     ci_upper      = ci_bounds[2, ]
   )
-  
-  # Also return detection draws per species
-  draws <- as.data.frame(diffs > threshold) %>%
-    tibble::as_tibble() %>%
-    dplyr::mutate(draw = 1:n_draws, .before = 1) %>%
-    tidyr::pivot_longer(
-      cols = -draw,
-      names_to = "species",
-      values_to = "detected"
-    ) %>%
-    dplyr::mutate(
-      site          = site_id,
-      sample_size   = sample_size,
-      year_baseline = year_pair[1],
-      year_changed  = year_pair[2]
-    ) %>%
-    dplyr::relocate(site:sample_size, .before = draw)
-  
-  return(list(summary = summary, draws = draws))
 }
