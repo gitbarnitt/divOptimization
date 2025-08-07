@@ -4,7 +4,7 @@ run_sample_size_sensitivity <- function(
     n_replicates = 3,
     seed = 123
 ) {
-  set.seed(seed)
+  #set.seed(seed) removed 20250806
   results <- list()
   
   xdata <- fit_result$fit$xdata
@@ -19,6 +19,7 @@ run_sample_size_sensitivity <- function(
     for (rep in seq_len(n_replicates)) {
       message(glue::glue("🔁 {site_id}: {size} plots, replicate {rep}"))
       
+      set.seed(seed + size * 100 + rep)  # Unique and reproducible per size-replicate added 20250806
       sampled_plots <- sample(all_plots, size)
       xdata_subset <- dplyr::filter(xdata, plotID %in% sampled_plots)
       
@@ -42,7 +43,8 @@ run_sample_size_sensitivity <- function(
       summary_df <- dplyr::bind_rows(summary_list) %>%
         dplyr::mutate(
           replicate  = rep,
-          fit_status = "ok"
+          fit_status = "ok",
+          plot_ids   = list(as.character(sampled_plots))  # ⬅️ NEW list-column added 20250806
         )
       
       results[[paste0("size_", size, "_rep_", rep)]] <- summary_df
