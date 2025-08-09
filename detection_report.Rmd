@@ -1,71 +1,192 @@
 ---
-title: "Detection Probability Report"
-output: html_document
+title: "Detecting Year-to-Year Change in Plant Cover: A Community-Weighted and Species-Level Sensitivity Analysis Using NEON Data"
+author: "Dave Barnett, Courtney Meier, and Eric Sokole"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+  pdf_document:
+    toc: true
+    number_sections: true
+    df_print: kable
+params:
+  example_site: "JERC"   # change to any site present in your data
+  top_n_species: 6       # how many species to highlight in species-level plots
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
-library(dplyr)
-library(tibble)
-```
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tidyr)
+  library(ggplot2)
+  library(stringr)
+  library(knitr)
+  library(purrr)
+})
 
-## Overview
+# Load plotting/summarizing helpers (keep these in your repo)
+source("R/community_detection_helpers.R")
 
-This report summarizes the detection probability estimates for plant species cover changes across NEON sites using GJAM-based simulations.
+# Sanity checks for objects created by your pipeline
+stopifnot(
+  exists("community_detection"),
+  exists("full_detection_summary"),
+  exists("relative_cover_df")
+)
 
-## Detection Summary Table
+# Global thresholds used throughout
+threshold <- 0.8
+pct_yearpairs <- 0.75
 
-```{r load-detection-summary-table}
-if (file.exists("outputs/detection_summary.rds")) {
-  detection_summary <- readRDS("outputs/detection_summary.rds")
-  head(detection_summary)
-} else {
-  cat("Detection summary file not found.")
+# Build summaries used across the report (uses helpers)
+summ <- cwm_build_all_summaries(
+  community_detection_df = community_detection,
+  threshold   = threshold,
+  pct_yearpairs = pct_yearpairs
+)
+
+# Parameter safety: fall back to the first site if param isn't present
+example_site <- params$example_site
+available_sites <- sort(unique(community_detection$site))
+if (!example_site %in% available_sites) {
+  example_site <- available_sites[1]
+  message("example_site not found in data; using: ", example_site)
 }
 ```
 
-## Plot: Detection Probability by Species and Subsample
+# Introduction
 
-```{r detection-prob-by-species}
-if (exists("detection_summary") && nrow(detection_summary) > 0) {
-  ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
-    geom_line() +
-    facet_wrap(~ siteID) +
-    labs(
-      title = "Detection Probability by Subsample Size",
-      x = "Subsample Size (Number of Plots)",
-      y = "Probability of Detecting 20% Change"
-    ) +
-    theme_minimal()
-} else {
-  cat("No detection data available to plot.")
-}
+NEON (the National Ecological Observatory Network) provides harmonized, open ecological data products across the United States to enable research on ecological change at continental scales. In this work we use NEON’s **Plant presence and percent cover** data product (DP1.10058.001) to quantify the probability of detecting year-to-year changes in plant cover at the species level and then roll these up to the community level via **relative cover** weights.
+
+**Goals and objectives.** We (i) evaluate species-specific detection probabilities for interannual change, (ii) derive **community-weighted mean (CWM)** detection probabilities using plot-level relative cover, and (iii) assess **sample-size sensitivity** (number of plots) required to achieve a detection threshold (0.8) robustly across year pairs (≥75% of pairwise year comparisons pass the threshold; “Rule-H”).
+
+**Context.** Building on earlier NEON plant diversity design optimization work (variance partitioning, power analyses, species accumulation), we revisit the problem with longer time series and a Bayesian workflow that propagates uncertainty from posterior predictions through species- and community-level summaries.
+
+**Overview.** We (1) fit a GJAM model to species cover, (2) generate posterior predictions for baseline vs. changed years, (3) compute species-level detection probabilities and credible intervals, (4) compute relative cover per plot/year and aggregate to the CWM detection, (5) summarize uncertainty via posterior draws, and (6) summarize across replicates and year pairs to inform site-specific sample-size targets (Rule-H).
+
+# Methods
+
+## Data and response variables
+We used NEON plant presence and percent cover data (DP1.10058.001). Cover was aggregated to plot–year–species, then **relative cover** was computed per plot–year (species cover divided by the total cover across species in that plot and year). Relative cover provides weights for community-level aggregation.
+
+## Modeling framework (GJAM)
+We fit a GJAM model to plot-level species cover with fixed effects for **year** and **NLCD class** and used the **CA** family for all species. MCMC settings followed internal defaults noted in your `fit_gjam_model_test()` function.
+
+## Posterior predictions & simulated change
+Using the fitted model, we generated posterior predictions for paired **baseline** and **changed** years across sample-size replicates (distinct plot subsets). For each species and year pair we computed posterior draws of differences (changed − baseline). A **species detection probability** is the posterior probability the difference exceeds a threshold (0 by default). We retain posterior mean and 95% credible intervals (from draws).
+
+## Sample size sensitivity
+We repeated the above across sample sizes (e.g., 5, 10, 15, … plots) and multiple replicates to quantify sensitivity to field effort.
+
+## Community-weighted mean (CWM) detection
+CWM detection weights species-level detection by the **mean relative cover** (averaged across the two years in the pair) and normalizes by the sum of weights. Credible intervals for CWM come from repeating the weighting on posterior draws (treating each species draw as 0/1 detected) and summarizing per replicate and year pair.
+
+## Rule-H summary
+A site **passes Rule-H** at a given sample size if **≥75%** of year pairs have **CWM detection ≥ 0.8**. We compute, by site, the minimum sample size satisfying Rule-H, plus mean and SD of detection at that target.
+
+# Results
+
+## Species-level detection (example site)
+
+Below we illustrate the pipeline for the example site `r example_site`. We select the top `r params$top_n_species` species by relative cover to show concise species-level curves (replicates averaged).
+
+```{r species-level-top}
+top_species <- relative_cover_df %>%
+  rename(site = siteID, species = taxonID) %>%
+  filter(site == example_site) %>%
+  group_by(species) %>%
+  summarise(mean_rc = mean(relative_cover, na.rm = TRUE), .groups = "drop") %>%
+  arrange(desc(mean_rc)) %>%
+  slice_head(n = params$top_n_species) %>%
+  pull(species)
+
+species_rep_avg <- full_detection_summary %>%
+  filter(site == example_site, species %in% top_species) %>%
+  mutate(
+    year_pair = if ("year_pair" %in% names(.)) year_pair else paste0(year_baseline, "_", year_changed),
+    ci_lower = as.numeric(ci_lower.y),
+    ci_upper = as.numeric(ci_upper.y)
+  ) %>%
+  group_by(site, species, sample_size, year_pair) %>%
+  summarise(
+    detect_prob_mean = mean(detect_prob, na.rm = TRUE),
+    ci_lower_mean    = mean(ci_lower,   na.rm = TRUE),
+    ci_upper_mean    = mean(ci_upper,   na.rm = TRUE),
+    .groups = "drop"
+  )
 ```
 
-## Plot: Detection Probability Across Sites
-
-```{r detection-prob-sites}
-if (exists("detection_summary") && nrow(detection_summary) > 0) {
-  detection_summary %>%
-    group_by(siteID, subsample_size) %>%
-    summarize(mean_prob = mean(detection_prob, na.rm = TRUE), .groups = "drop") %>%
-    ggplot(aes(x = subsample_size, y = mean_prob)) +
-    geom_line() +
-    geom_point() +
-    labs(
-      title = "Average Detection Probability Across Sites",
-      x = "Subsample Size",
-      y = "Average Detection Probability"
-    ) +
-    theme_minimal()
-} else {
-  cat("No detection data available to summarize.")
-}
+```{r species-level-plot, fig.height=5.5}
+ggplot(species_rep_avg, aes(x = sample_size, y = detect_prob_mean,
+                            color = species, group = species)) +
+  geom_ribbon(aes(ymin = ci_lower_mean, ymax = ci_upper_mean, fill = species),
+              alpha = 0.15, color = NA, show.legend = FALSE) +
+  geom_line(size = 0.8) +
+  geom_point(size = 1.8) +
+  geom_hline(yintercept = threshold, linetype = "dashed") +
+  scale_y_continuous(limits = c(0, 1)) +
+  facet_wrap(~ year_pair, scales = "free_x") +
+  labs(
+    title = paste0("Species-level detection (", example_site, "): top ", params$top_n_species, " by relative cover"),
+    x = "Sample size (plots)", y = "Detection probability"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
 ```
 
-## Interpretation and Decision Support
+## Community-weighted detection by year pair (example site)
 
-- This report can guide decisions on optimal sampling effort (number of plots) to detect 20% change in percent cover for species at NEON sites.
-- Smaller sample sizes may be acceptable at sites with higher detection power.
-- Consider additional simulations for edge cases or rare taxa.
+```{r cwm-by-yearpair-example, fig.height=5.5}
+summ$rep_avg %>%
+  filter(site == example_site) %>%
+  cwm_plot_by_yearpair(threshold = threshold)
+```
+
+## Mean across year pairs (example site)
+
+```{r cwm-mean-across-years-example, fig.height=5.5}
+summ$site_avg %>%
+  filter(site == example_site) %>%
+  cwm_plot_mean_across_yearpairs(threshold = threshold)
+```
+
+## Rule-H targets across all sites
+
+```{r rule-h-table}
+summ$site_tbl %>%
+  arrange(site) %>%
+  mutate(
+    prop_yearpairs_passing   = round(prop_yearpairs_passing, 3),
+    mean_detection_at_target = round(mean_detection_at_target, 3),
+    sd_detection_at_target   = round(sd_detection_at_target, 3)
+  ) %>%
+  kable(caption = "Rule-H targets (threshold = 0.8; ≥75% year pairs passing).")
+```
+
+# Discussion
+
+**Model reuse vs. applying a fixed 20% change.** Reusing the fitted model and sampling its posterior retains uncertainty and site-specific variance structure, rather than imposing a uniform effect on raw data.
+
+**Species-level vs. mean cover.** Working at the species level preserves compositional signals and allows community aggregation via principled weights (relative cover), rather than averaging away heterogeneity.
+
+**Uncertainty communication.** Posterior draws propagate uncertainty to species- and community-level summaries (credible intervals on both).
+
+**Rule-H.** The 0.8 threshold with a 75% year-pair criterion gives a concrete, transparent target. Sites can be prioritized by the minimum sample size at which Rule-H is achieved.
+
+# Appendix
+
+## All sites: community-weighted detection by year pair
+
+```{r appendix-all-sites-by-yearpair, fig.height=6.5}
+cwm_plot_by_yearpair(summ$rep_avg, threshold = threshold)
+```
+
+## All sites: mean across year pairs
+
+```{r appendix-all-sites-mean, fig.height=6.5}
+cwm_plot_mean_across_yearpairs(summ$site_avg, threshold = threshold)
+```

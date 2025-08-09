@@ -1,0 +1,71 @@
+---
+title: "Detection Probability Report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(tibble)
+```
+
+## Overview
+
+This report summarizes the detection probability estimates for plant species cover changes across NEON sites using GJAM-based simulations.
+
+## Detection Summary Table
+
+```{r load-detection-summary-table}
+if (file.exists("outputs/detection_summary.rds")) {
+  detection_summary <- readRDS("outputs/detection_summary.rds")
+  head(detection_summary)
+} else {
+  cat("Detection summary file not found.")
+}
+```
+
+## Plot: Detection Probability by Species and Subsample
+
+```{r detection-prob-by-species}
+if (exists("detection_summary") && nrow(detection_summary) > 0) {
+  ggplot(detection_summary, aes(x = subsample_size, y = detection_prob, color = species)) +
+    geom_line() +
+    facet_wrap(~ siteID) +
+    labs(
+      title = "Detection Probability by Subsample Size",
+      x = "Subsample Size (Number of Plots)",
+      y = "Probability of Detecting 20% Change"
+    ) +
+    theme_minimal()
+} else {
+  cat("No detection data available to plot.")
+}
+```
+
+## Plot: Detection Probability Across Sites
+
+```{r detection-prob-sites}
+if (exists("detection_summary") && nrow(detection_summary) > 0) {
+  detection_summary %>%
+    group_by(siteID, subsample_size) %>%
+    summarize(mean_prob = mean(detection_prob, na.rm = TRUE), .groups = "drop") %>%
+    ggplot(aes(x = subsample_size, y = mean_prob)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Average Detection Probability Across Sites",
+      x = "Subsample Size",
+      y = "Average Detection Probability"
+    ) +
+    theme_minimal()
+} else {
+  cat("No detection data available to summarize.")
+}
+```
+
+## Interpretation and Decision Support
+
+- This report can guide decisions on optimal sampling effort (number of plots) to detect 20% change in percent cover for species at NEON sites.
+- Smaller sample sizes may be acceptable at sites with higher detection power.
+- Consider additional simulations for edge cases or rare taxa.
