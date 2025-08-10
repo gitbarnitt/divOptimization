@@ -3,6 +3,7 @@ library(tidyr)
 library(gjam)
 library(ggplot2)
 source("R/load_neon_data.R")
+source("R/compute_relative_cover.R")
 #source("R/fit_gjam_model.R")
 #source("R/simulate_change.R")
 #source("R/simulate_yearly_changes.R")
@@ -12,7 +13,7 @@ source("R/load_neon_data.R")
 
 ################# 
 #pull in raw data
-#rawNEONdata <- readRDS('C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
+rawNEONdata <- readRDS('C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
 
 #raw <- rawNEONdata
 
@@ -476,7 +477,178 @@ table(sensitivity_results$fit_status, sensitivity_results$sample_size)
 
           
 
+######
+#test relative cover
+# Load the function (if not already sourced)
+# source("path/to/compute_relative_cover.R")
 
+# Path to the test NEON raw data (you may already have this in memory or targets)
+test_path <- "data/plant_data.rds"
+
+# Run the function
+relative_cover_df <- compute_relative_cover(test_path)
+
+# Preview the output
+cat("✅ Output dimensions:\n")
+cat("Rows:", nrow(relative_cover_df), "\n")
+cat("Columns:", ncol(relative_cover_df), "\n")
+print(colnames(relative_cover_df))
+
+# Check for duplicates — there should be only one row per siteID-plotID-year-taxonID
+duplicate_rows <- relative_cover_df %>%
+  dplyr::count(siteID, plotID, year, taxonID) %>%
+  dplyr::filter(n > 1)
+
+if (nrow(duplicate_rows) == 0) {
+  cat("✅ No duplicate rows per site-plot-year-taxon.\n")
+} else {
+  cat("❌ Warning: Duplicates found!\n")
+  print(duplicate_rows)
+}
+
+# Spot-check sum of relative cover per siteID-plotID-year = 1
+check_sums <- relative_cover_df %>%
+  dplyr::group_by(siteID, plotID, year) %>%
+  dplyr::summarise(sum_rel_cover = sum(relative_cover), .groups = "drop")
+
+summary(check_sums$sum_rel_cover)
+
+# Visual check: Histogram of summed relative cover
+ggplot(check_sums, aes(x = sum_rel_cover)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  labs(title = "Distribution of Relative Cover Sums per Plot-Year",
+       x = "Sum of Relative Cover", y = "Count") +
+  theme_minimal()
+
+
+######
+#evaluate_community_weighted_detection
+community_detection <- evaluate_community_weighted_detection(
+  sensitivity_results = sensitivity_results,
+  relative_cover_df   = relative_cover_df
+)
+
+# Preview results
+print(head(community_detection))
+
+community_detection <- evaluate_community_weighted_detection(
+  sensitivity_results = sensitivity_results,      # updated!
+  relative_cover_df   = relative_cover_df
+)
+head(community_detection)
+
+
+######
+#testing run_sample_size_sensitivity()
+
+sensitivity_results <- run_sample_size_sensitivity(test_result)
+
+# Extract the plot IDs used in each replicate
+library(dplyr)
+
+fit_xdata <- test_result$fit$xdata
+
+sample_size_to_check <- 10  # Change as needed
+site_to_check <- unique(test_result$site)
+
+# We'll extract sampled plots from xdata used by the model
+replicate_plot_sets <- lapply(seq_len(3), function(rep_num) {
+  set.seed(123 + sample_size_to_check * 100 + rep_num)  # must match updated function
+  sample(unique(fit_xdata$plotID), sample_size_to_check)
+})
+
+# Turn into a data frame for easy comparison
+plot_sets_df <- tibble::tibble(
+  replicate = 1:3,
+  plots = replicate_plot_sets
+)
+
+print("✅ Sampled plot IDs per replicate:")
+print(plot_sets_df)
+
+# Optional: See how much they overlap
+combn(1:3, 2, simplify = FALSE) %>%
+  purrr::walk(~ {
+    i <- .x[1]; j <- .x[2]
+    overlap <- length(intersect(replicate_plot_sets[[i]], replicate_plot_sets[[j]]))
+    cat(glue::glue("Replicate {i} vs {j}: {overlap} overlapping plots\n"))
+  })
+
+
+######
+library(dplyr)
+library(tidyr)
+
+# Rebuild what the function does
+results_with_pairs <- sensitivity_results %>%
+  mutate(year_pair = paste0(year_baseline, "_", year_changed)) %>%
+  filter(!is.na(plot_ids))
+
+cover_renamed <- relative_cover_df %>%
+  rename(site_cover = siteID, species_cover = taxonID)
+
+# Reproduce the join + unnest step exactly
+test_join <- results_with_pairs %>%
+  rowwise() %>%
+  mutate(rel_cover = list(
+    cover_renamed %>%
+      filter(site_cover == site,
+             species_cover == species,
+             year %in% c(as.integer(year_baseline), as.integer(year_changed)),
+             plotID %in% plot_ids)
+  )) %>%
+  ungroup() %>%
+  unnest(rel_cover, names_sep = "_rel")
+
+names(test_join)
+
+######
+#updated with uncertainty 20250807
+sensitivity_results <- run_sample_size_sensitivity(
+  fit_result    = test_result,
+  sample_sizes  = c(5, 10),
+  n_replicates  = 3,  # or whatever number you'd like
+  seed          = 123
+)
+
+
+#extra
+summary_only <- purrr::map_dfr(sensitivity_results, "summary")
+
+full_detection_summary <- summarize_species_detection_with_uncertainty(
+  summary_df = sensitivity_results$summary,
+  draws_df   = sensitivity_results$draws
+)
+
+# (2) Community-weighted mean with credible intervals
+community_detection <- evaluate_community_weighted_detection(
+  sensitivity_results = sensitivity_results$summary,
+  relative_cover_df   = relative_cover_df,
+  draws_df            = sensitivity_results$draws
+)
+
+
+#summary work
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(purrr)
+library(stringr)
+
+# Helper: detect if CI columns are present
+has_ci <- all(c("ci_lower", "ci_upper") %in% names(community_detection))
+
+# Average across replicates for each site × sample_size × year_pair
+community_rep_avg <- community_detection %>%
+  mutate(year_pair = ifelse(is.null(year_pair),
+                            paste0(year_baseline, "_", year_changed), year_pair)) %>%
+  group_by(site, sample_size, year_pair) %>%
+  summarise(
+    mean_detection = mean(weighted_detection, na.rm = TRUE),
+    ci_lower = if (has_ci) mean(ci_lower, na.rm = TRUE) else NA_real_,
+    ci_upper = if (has_ci) mean(ci_upper, na.rm = TRUE) else NA_real_,
+    .groups = "drop"
+  )
 
 
 

@@ -1,0 +1,61 @@
+target,command,origin_fn,mode
+plant_data_file,"""data/plant_data.rds""",NA,other
+outputs_dir,"make_outputs_dir(""outputs"")",make_outputs_dir,other
+check_names,"{
+     check_pipeline_symbols()
+     TRUE
+ }",NA,other
+neon_data,load_neon_data(plant_data_file),load_neon_data,other
+relative_cover_df,compute_relative_cover(plant_data_file),compute_relative_cover,other
+raw_data,readRDS(plant_data_file),readRDS,other
+fit_result,fit_gjam_model_test(neon_data),fit_gjam_model_test,other
+test_result_norm,"{
+     x <- fit_result
+     x$fit <- normalize_gjam_chains(x$fit)
+     x
+ }",NA,other
+sensitivity_results_variable,"run_sample_size_sensitivity_variable(fit_result = test_result_norm, 
+     sample_sizes = c(5, 10, 15, 20, 25), n_replicates = 3, seed = 123)",run_sample_size_sensitivity_variable,variable
+sensitivity_results_baseline,"run_baseline_full_available(fit_result = test_result_norm, 
+     seed = 123)",run_baseline_full_available,baseline
+sensitivity_results,"run_sample_size_sensitivity(fit_result = test_result_norm, 
+     sample_sizes = c(5, 10, 15, 20, 25), n_replicates = 3, seed = 123)",run_sample_size_sensitivity,capped
+xnew_in_sample,test_result_norm$xdata,NA,other
+full_detection_summary_variable,"summarize_species_detection_with_uncertainty(summary_df = sensitivity_results_variable$summary, 
+     draws_df = read_draws_index(sensitivity_results_variable$draws))",summarize_species_detection_with_uncertainty,variable
+full_detection_summary,"summarize_species_detection_with_uncertainty(summary_df = sensitivity_results_variable$summary, 
+     draws_df = read_draws_index(sensitivity_results_variable$draws))",summarize_species_detection_with_uncertainty,other
+community_detection,"evaluate_community_weighted_detection(sensitivity_results = sensitivity_results_variable$summary, 
+     relative_cover_df = relative_cover_df, draws_df = read_draws_index(sensitivity_results_variable$draws))",evaluate_community_weighted_detection,other
+community_detection_variable,"evaluate_community_weighted_detection(sensitivity_results = sensitivity_results_variable$summary, 
+     relative_cover_df = relative_cover_df, draws_df = read_draws_index(sensitivity_results_variable$draws))",evaluate_community_weighted_detection,variable
+community_detection_baseline,"evaluate_community_weighted_detection(sensitivity_results = sensitivity_results_baseline$summary, 
+     relative_cover_df = relative_cover_df, draws_df = read_draws_index(sensitivity_results_baseline$draws))",evaluate_community_weighted_detection,baseline
+full_detection_summary_baseline,"summarize_species_detection_with_uncertainty(summary_df = sensitivity_results_baseline$summary, 
+     draws_df = read_draws_index(sensitivity_results_baseline$draws))",summarize_species_detection_with_uncertainty,baseline
+posterior_draws,"manual_posterior_predict(fit = test_result_norm$fit, 
+     xnew = xnew_in_sample)",manual_posterior_predict,other
+detection_report,"{
+     outputs_dir
+     community_detection
+     full_detection_summary
+     relative_cover_df
+     full_detection_summary_baseline
+     community_detection_baseline
+     sensitivity_results_variable
+     sensitivity_results_baseline
+     test_result_norm
+     env <- new.env(parent = globalenv())
+     env$community_detection <- community_detection
+     env$full_detection_summary <- full_detection_summary
+     env$relative_cover_df <- relative_cover_df
+     env$full_detection_summary_baseline <- full_detection_summary_baseline
+     env$community_detection_baseline <- community_detection_baseline
+     env$draws_idx_variable <- sensitivity_results_variable$draws
+     env$draws_idx_baseline <- sensitivity_results_baseline$draws
+     env$fit_info <- test_result_norm
+     rmarkdown::render(input = ""detection_report.Rmd"", output_file = ""outputs/detection_report.html"", 
+         params = list(example_site = ""JERC"", top_n_species = 6), 
+         envir = env, quiet = TRUE)
+     ""outputs/detection_report.html""
+ }",NA,other
