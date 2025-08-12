@@ -56,6 +56,23 @@ run_baseline_full_available <- function(fit_result, seed = 123) {
       requested_sample_size  = n_av,
       actual_sample_size     = n_av
     )
+    
+    # -- NEW: ensure a continuous difference column for plotting --
+    if (!"diff" %in% names(dd)) {
+      if (all(c("pred_changed","pred_baseline") %in% names(dd))) {
+        dd$diff <- dd$pred_changed - dd$pred_baseline
+      } else if (all(c("mu_changed","mu_baseline") %in% names(dd))) {
+        dd$diff <- dd$mu_changed - dd$mu_baseline
+      } else if (all(c("y_changed","y_baseline") %in% names(dd))) {
+        dd$diff <- dd$y_changed - dd$y_baseline
+      } else if (all(c("mean_changed","mean_baseline") %in% names(dd))) {
+        dd$diff <- dd$mean_changed - dd$mean_baseline
+      } else {
+        dd$diff <- NA_real_
+      }
+    }
+    # ------------------------------------------------------------
+    
     fn <- file.path("outputs/draws_baseline", paste0("baseline_", pair, ".parquet"))
     arrow::write_parquet(dd, fn)
     

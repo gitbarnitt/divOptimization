@@ -3,197 +3,223 @@ title: "Detecting Year-to-Year Change in Plant Cover: Baseline and Sample-Size S
 author: "Dave Barnett, Courtney Meier, and Eric Sokole"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
-  bookdown::html_document2:
+  rmarkdown::html_document:
     toc: true
     toc_depth: 3
-    toc_float: true
     number_sections: true
-  bookdown::pdf_document2:
-    toc: true
+    fig_caption: true
+  rmarkdown::pdf_document:
     number_sections: true
 params:
   example_site: "JERC"
   top_n_species: 6
+  min_sample_size: 5   # floor for plots shown on x-axes
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align = "center")
+knitr::opts_chunk$set(
+  echo = FALSE, message = FALSE, warning = FALSE,
+  fig.align = "center", fig.width = 8, fig.height = 5
+)
+
 suppressPackageStartupMessages({
   library(dplyr); library(tidyr); library(ggplot2)
   library(stringr); library(knitr); library(purrr); library(arrow)
 })
 
-# Helpers
-source("R/community_detection_helpers.R")
-
-# Expected objects injected by targets env:
-# - community_detection                 (variable mode; default)
-# - full_detection_summary              (variable mode; default, includes CI + means)
-# - relative_cover_df
-# Optionally (if you added them to the env):
-# - community_detection_baseline
-# - full_detection_summary_baseline
-# - draws_idx_variable  (data frame of parquet file paths and metadata)
-# - fit_info            (list with $site, $xdata, $ydata)
-
-stopifnot(
-  exists("community_detection"),
-  exists("full_detection_summary"),
-  exists("relative_cover_df")
-)
-
-# Detection criterion
-threshold <- 0.8
-pair_coverage_target <- 0.75
-
-# Summaries used in many figures (variable mode)
-summ <- cwm_build_all_summaries(
-  community_detection_df = community_detection,
-  threshold      = threshold,
-  pct_yearpairs  = pair_coverage_target
-)
-
-# Baseline summaries if they exist; else create empty placeholders
-if (exists("community_detection_baseline")) {
-  summ_base <- cwm_build_all_summaries(
-    community_detection_df = community_detection_baseline,
-    threshold      = threshold,
-    pct_yearpairs  = pair_coverage_target
-  )
-} else {
-  summ_base <- list(rep_avg = tibble(), site_avg = tibble(), site_tbl = tibble())
+# --- simple, sequential figure counter so captions are 1,2,3,... (not 3.1, 3.2) ---
+.fig_counter <- 0L
+figcap <- function(txt) {
+  .fig_counter <<- .fig_counter + 1L
+  paste0("Figure ", .fig_counter, ". ", txt)
 }
 
-# Parameter safety: fall back to first site if needed
-example_site <- params$example_site
-available_sites <- sort(unique(community_detection$site))
-if (!example_site %in% available_sites) {
-  example_site <- available_sites[1]
-  message("example_site not found; using: ", example_site)
-}
-
-# Convenience: integer x-axis ticks for possible sample sizes present
-possible_K <- full_detection_summary %>%
-  dplyr::pull(requested_sample_size) %>% unique() %>% sort()
-```
-
-```{r normalize columns, include=FALSE}
-
-# Normalize detection summary columns so downstream code is consistent
-normalize_det <- function(df, mode = c("variable","baseline","capped")) {
-  mode <- match.arg(mode)
-  if (!nrow(df)) return(df)
-
-  # ensure year_pair
-  if (!"year_pair" %in% names(df) && all(c("year_baseline","year_changed") %in% names(df))) {
-    df <- df %>% mutate(year_pair = paste0(.data$year_baseline, "_", .data$year_changed))
+# --- helper: harmonize schemas new/old (cwm_mean vs weighted_detection, year_pair, etc.) ---
+sanitize_community <- function(df) {
+  if (!is.data.frame(df) || !nrow(df)) return(df)
+  if (!"weighted_detection" %in% names(df) && "cwm_mean" %in% names(df)) {
+    df <- dplyr::rename(df, weighted_detection = cwm_mean)
   }
-
-  # unify detection mean / CI names
-  if ("detect_prob" %in% names(df) && !"mean_detection" %in% names(df)) {
-    df <- dplyr::rename(df, mean_detection = detect_prob)
+  if (!"year_pair" %in% names(df) &&
+      all(c("year_baseline","year_changed") %in% names(df))) {
+    df <- dplyr::mutate(df, year_pair = paste0(.data$year_baseline, "_", .data$year_changed))
   }
-  # common CI name variants
-  if ("ci_lower.y" %in% names(df) && !"ci_lower" %in% names(df)) {
-    df <- dplyr::rename(df, ci_lower = ci_lower.y)
-  }
-  if ("ci_upper.y" %in% names(df) && !"ci_upper" %in% names(df)) {
-    df <- dplyr::rename(df, ci_upper = ci_upper.y)
-  }
-
-  # unify sample-size columns
-  if (mode == "variable") {
-    # expected for variable
-    if ("sample_size" %in% names(df) && !"requested_sample_size" %in% names(df)) {
-      df <- dplyr::rename(df, requested_sample_size = sample_size)
-    }
-  } else if (mode == "baseline") {
-    # baseline overlay expects an "actual_sample_size"
-    if ("sample_size" %in% names(df) && !"actual_sample_size" %in% names(df)) {
-      df <- dplyr::rename(df, actual_sample_size = sample_size)
-    }
-    if ("requested_sample_size" %in% names(df) && !"actual_sample_size" %in% names(df)) {
-      df <- dplyr::rename(df, actual_sample_size = requested_sample_size)
-    }
-  } else if (mode == "capped") {
-    # classic fixed-K path usually has requested_sample_size or sample_size
-    if ("sample_size" %in% names(df) && !"requested_sample_size" %in% names(df)) {
-      df <- dplyr::rename(df, requested_sample_size = sample_size)
-    }
-  }
-
   df
 }
 
-# Build normalized views used by figures/tables
-fds_var  <- normalize_det(full_detection_summary, "variable")
-
-if (exists("full_detection_summary_baseline")) {
-  fds_base <- normalize_det(full_detection_summary_baseline, "baseline")
-} else {
-  fds_base <- tibble()
+# --- helper: replicate-averaged curves (mirrors your helpers) ---
+rep_avg_fn <- function(df) {
+  stopifnot(all(c("site","sample_size","replicate","weighted_detection") %in% names(df)))
+  if (!"year_pair" %in% names(df)) {
+    stop("Expected `year_pair`.", call. = FALSE)
+  }
+  has_ci <- all(c("ci_lower","ci_upper") %in% names(df))
+  df %>%
+    mutate(
+      ci_lower = if (has_ci) as.numeric(ci_lower) else NA_real_,
+      ci_upper = if (has_ci) as.numeric(ci_upper) else NA_real_
+    ) %>%
+    group_by(site, sample_size, year_pair) %>%
+    summarise(
+      mean_detection = mean(weighted_detection, na.rm = TRUE),
+      n_replicates   = dplyr::n_distinct(replicate),
+      ci_lower_mean  = if (has_ci) mean(ci_lower, na.rm = TRUE) else NA_real_,
+      ci_upper_mean  = if (has_ci) mean(ci_upper, na.rm = TRUE) else NA_real_,
+      .groups = "drop"
+    )
 }
 
-# Optional: if you keep the old capped path and want to use it anywhere
-if (exists("sensitivity_results")) {
-  # If you also make a summary target from capped results, normalize it here:
-  # fds_capped <- normalize_det(full_detection_summary_capped, "capped")
+# --- helper: summarise across year pairs (site × N) ---
+site_avg_fn <- function(rep_avg_df) {
+  rep_avg_df %>%
+    group_by(site, sample_size) %>%
+    summarise(
+      detection_mean = mean(mean_detection, na.rm = TRUE),
+      detection_sd   = sd(mean_detection, na.rm = TRUE),
+      ci_lower       = quantile(mean_detection, 0.025, na.rm = TRUE),
+      ci_upper       = quantile(mean_detection, 0.975, na.rm = TRUE),
+      n_year_pairs   = dplyr::n_distinct(year_pair),
+      .groups = "drop"
+    )
 }
+
+# --- helper: fraction of year pairs passing threshold (site × N) ---
+fraction_passing <- function(rep_avg_df, threshold = 0.8) {
+  rep_avg_df %>%
+    mutate(pass = mean_detection >= threshold) %>%
+    group_by(site, sample_size) %>%
+    summarise(
+      prop_yearpairs_passing = mean(pass, na.rm = TRUE),
+      mean_at_size           = mean(mean_detection, na.rm = TRUE),
+      sd_at_size             = sd(mean_detection, na.rm = TRUE),
+      .groups = "drop"
+    )
+}
+
+# --- guard: required objects injected by tar target render() env ---
+need <- function(obj) if (!exists(obj, inherits = FALSE)) stop(sprintf("Missing `%s` in render environment.", obj), call. = FALSE)
+need("community_detection")
+need("full_detection_summary")
+need("relative_cover_df")
+has_baseline       <- exists("community_detection_baseline", inherits = FALSE) && nrow(community_detection_baseline) > 0
+has_draws_idx_var  <- exists("draws_idx_variable", inherits = FALSE) && nrow(draws_idx_variable) > 0
+
+# --- constants & params ---
+threshold <- 0.8
+pair_coverage_target <- 0.75
+MIN_N <- params$min_sample_size %||% 5
+
+# --- normalize/prepare inputs ---
+cd  <- sanitize_community(community_detection)
+cdb <- if (has_baseline) sanitize_community(community_detection_baseline) else NULL
+
+# For variable mode, x-axis should reflect *requested* N when present
+cd_var <- cd
+if ("requested_sample_size" %in% names(cd_var)) {
+  cd_var <- cd_var %>% mutate(sample_size = requested_sample_size)
+}
+
+# Filter very small N from plots by default
+cd_var_filt <- cd_var %>% filter(sample_size >= MIN_N)
+cd_base_filt <- if (!is.null(cdb)) cdb %>% filter(sample_size >= MIN_N) else NULL
+
+# Replicate-averaged datasets
+rep_avg_var   <- rep_avg_fn(cd_var_filt)
+site_avg_var  <- site_avg_fn(rep_avg_var)
+rep_avg_base  <- if (!is.null(cd_base_filt)) rep_avg_fn(cd_base_filt) else NULL
+site_avg_base <- if (!is.null(rep_avg_base)) site_avg_fn(rep_avg_base) else NULL
+
+# example site selection
+available_sites <- sort(unique(cd_var_filt$site))
+example_site <- params$example_site
+if (!example_site %in% available_sites && length(available_sites)) example_site <- available_sites[1]
+
+rep_avg_var_site   <- rep_avg_var  %>% filter(site == example_site)
+site_avg_var_site  <- site_avg_var %>% filter(site == example_site)
+rep_avg_base_site  <- if (!is.null(rep_avg_base))  rep_avg_base  %>% filter(site == example_site) else NULL
+site_avg_base_site <- if (!is.null(site_avg_base)) site_avg_base %>% filter(site == example_site) else NULL
+
+# tiny baseline overlay helper
+add_baseline_layer <- function(p, df_base, yvar = "mean_detection") {
+  if (is.null(df_base) || !nrow(df_base)) return(p)
+  p +
+    geom_point(data = df_base,
+               aes(x = sample_size, y = .data[[yvar]]),
+               inherit.aes = FALSE, size = 2, shape = 21, stroke = 0.8) +
+    geom_line(data = df_base,
+              aes(x = sample_size, y = .data[[yvar]], group = 1),
+              inherit.aes = FALSE, linetype = "dotted")
+}
+
 
 ```
 
 # 1 Introduction
 
-NEON’s plant diversity program was designed to support detection of biologically meaningful change across space and time. Earlier optimization focused mainly on **spatial** trade-offs. With longer time series now available, we extend that work into the **temporal** domain and ask two operational questions:
+NEON’s plant diversity program is designed to detect biologically meaningful change across space and time. With longer time series now available, we address two operational questions:
 
 1. **How well are we doing now?** For each site and year pair, what is our current probability of detecting interannual change in species cover, given the plots we actually sampled (the **baseline**)?  
-2. **Can we do as well with fewer plots?** Using a **sample-size sensitivity** analysis, can reduced effort approach the baseline—pair by pair—without undermining detection?
+2. **Can we do as well with fewer plots?** Can we do as well with fewer plots? Under a sample-size sensitivity scenario, if we request a target sample size 
+$N$ but use whatever is actually available for each pair (i.e., 
+$n = \min(N, n_{\text{available}})$), how close do we get to baseline?
 
-We fit a Bayesian joint species model (GJAM), propagate posterior uncertainty to species- and community-level summaries, and compare **baseline** performance with **variable-K** scenarios that let each year pair use up to the plots it actually has.
+We fit a Bayesian joint species model (GJAM), propagate posterior uncertainty to species and communities (via relative-cover weights), and compare baseline performance to variable-N scenarios.
 
-# 2 Methods
+## Methods
 
-## 2.1 Data and response
+We analyzed plot-based plant abundance data from the National Ecological Observatory Network (NEON) Plant presence and percent cover product (DP1.10058.001). Data were aggregated to plot × year × species for each site, retaining the original percent cover estimates as the response variable in modeling. NEON’s vegetation protocol (Barnett et al., 2019a) samples species composition and cover in a fixed network of 20 × 20 m plots distributed according to NEON’s terrestrial spatial sampling design (Barnett et al., 2019b). In this study, we used only the Distributed Base plots, which are located across each site to capture landscape-scale environmental variability. These plots are the operative unit of replication in our sample-size sensitivity analysis. Only plots with valid observations in both years of a pairwise comparison were included.
 
-We used NEON’s Plant presence and percent cover (DP1.10058.001), aggregated to plot × year × species. **Relative cover** is species cover divided by total cover within a plot–year and provides weights for community aggregation.
+Let $\mathbf{Y}$ denote the $n \times S$ matrix of continuous abundances, where $n$ is the number of plot–year observations and $S$ the number of species present in the site’s sample frame. We fit the **Generalized Joint Attribute Model** (GJAM; Clark et al., 2017) for each site, specifying a continuous abundance (CA) likelihood for all species. The model included fixed effects for **year** (treated as a categorical factor to enable direct pairwise contrasts between years) and **nlcdClass** (absorbing coarse habitat differences). In model notation,
 
-## 2.2 Model
+$$
+\mathbf{Y} \sim \text{year} + \text{nlcdClass},
+$$
 
-We fit GJAM (`fit_gjam_model_test`) with the formula
+with both predictors applied to all species in the multivariate response. We set `REDUCT = FALSE` to retain the full residual covariance structure, allowing estimation of interspecific correlations without dimension reduction. Models were fit using the `fit_gjam_model_test` implementation, which prepares NEON data for GJAM, ensures predictor alignment across species, and applies internal checks for missing or zero-variance responses. MCMC settings followed defaults used in Clark’s published CA examples, providing stable posterior estimates given the sample sizes in this analysis.
 
-```r
-~ year + nlcdClass
-```
+### Posterior prediction and detection probability
 
-- **year** is a **factor**, enabling direct year-pair contrasts without imposing linear trends.  
-- **nlcdClass** accounts for coarse habitat differences; even if not summarized later, it absorbs variance unrelated to interannual change, improving power.
+Posterior predictions were obtained with a custom `manual_posterior_predict()` function, which draws from the joint posterior distribution of regression coefficients and residual covariances produced by a single fitted model. This approach allows new covariate matrices $\mathbf{X}^\ast$ to be evaluated **without refitting** the model, preserving (1) the species–species covariances estimated in the original fit and (2) the full model uncertainty from that fit. By avoiding refitting, we ensure that any differences between baseline and changed scenarios are attributable solely to the imposed change in covariates, not to variation introduced by separate MCMC runs.
 
-All species use the `CA` family. MCMC settings follow your `fit_gjam_model_test()` defaults.
+For each site, we identified all consecutive year pairs in the record. For each pair, two prediction scenarios were evaluated:
 
-## 2.3 Posterior predictions and detection
+1. **Baseline:** Observed covariates for all plots with valid data in both years.
+2. **Changed:** The same plots and covariates, except that for a single focal species, the abundance was increased by 20% relative to baseline. This was implemented by multiplying the predicted baseline abundance for that species by 1.2 **within the design matrix supplied to posterior prediction**, rather than altering the raw training data.
 
-For each year pair, we simulate baseline vs. changed years from the posterior and compute species-level detection probability as the posterior mass above a threshold on the difference (changed − baseline). We retain posterior means and 95% credible intervals from draws.
+For each species $s$, the **detection probability** $D_s$ was defined as the posterior probability that predicted abundance under the changed scenario exceeded that under baseline by at least the 20% threshold. Detection probabilities were summarized as posterior means and 95% credible intervals.
 
-## 2.4 Sample-size sensitivity (variable by pair) and baseline
+### Sample-size sensitivity
 
-For a requested size \(K\), each pair uses \(k=\min(K, n_{\text{available}}(\text{pair}))\). We also compute a **baseline** per pair with \(k=n_{\text{available}}(\text{pair})\), showing the best achievable detection with current coverage.
+We repeated the detection probability analysis under reduced sample sizes to assess the effect of plot number on change detection. NEON’s sampling design fixes the maximum number of Distributed Base plots per site in each year according to protocol (Barnett et al., 2019b), but this number can be reduced in practice by weather, access constraints, or operational limits. For a target sample size $N$, the number of plots used for each year pair was
 
-## 2.5 Community-weighted mean (CWM)
+$$
+n = \min(N, n_{\text{available}}),
+$$
 
-Let \(w_s\) be mean relative cover of species \(s\) across the two years (averaged across sampled plots), and \(D_s\) be the species-level detection probability (from posterior draws). The community-weighted detection is
-\[\n\mathrm{CWM} = \frac{\sum_s w_s D_s}{\sum_s w_s}.\n\]
-Credible intervals for CWM arise by repeating this calculation for each posterior draw.
+where $n_{\text{available}}$ is the number of Distributed Base plots meeting protocol requirements for both years. Reduced-plot scenarios were generated by random subsampling without replacement from the available plot set. The **baseline** for sample-size sensitivity used $n = n_{\text{available}}$ and represents the maximum achievable detection with the existing data and sampling effort. This framing links the simulation directly to NEON’s field reality, where plot-level replication is the operative sampling unit for detecting change.
 
-## 2.6 Decision summary
+### Community-weighted mean detection
 
-For each \(K\), we report the **fraction of year pairs** whose CWM detection meets or exceeds 0.8. This provides a clear, site-specific adequacy criterion without jargon.
+To summarize detection at the community level, we calculated the **community-weighted mean** (CWM) detection probability for each year pair and sample size. Relative cover was used only in this step: let $w_s$ be the mean relative cover of species $s$ across the two years (averaged across sampled plots), and $D_s$ the species-level detection probability. The CWM is given by
 
-# 3 Results
+$$
+\text{CWM} = \frac{\sum_s w_s D_s}{\sum_s w_s}.
+$$
 
-## 3.1 Species-level detection (example site) — variable curves, baseline overlay when available
+Credible intervals for the CWM were obtained by repeating this calculation for each posterior draw, preserving the joint uncertainty across species.
+
+### Decision criterion
+
+For each sample size $N$, we report the fraction of year pairs whose CWM detection probability met or exceeded 0.8. This threshold provides an operational criterion for adequate monitoring performance. Species-specific results are retained for site-level examples in the Results section to illustrate variation in detectability across functional groups and abundances.
+
+
+# Results
+
+## Species-level detection (example site) — variable curves, baseline overlay when available
 
 ```{r species-top, fig.cap='Figure 1. Species-level detection (variable mode) with baseline overlays where available; example site shows top species by relative cover. Points/lines are replicate means; ribbons, 95% credible intervals.'}
-# Top species by relative cover at the example site
+
+# pick top species at example site by relative cover
 top_species <- relative_cover_df %>%
   rename(site = siteID, species = taxonID) %>%
   filter(site == example_site) %>%
@@ -203,161 +229,226 @@ top_species <- relative_cover_df %>%
   slice_head(n = params$top_n_species) %>%
   pull(species)
 
-# Variable-mode replicate-averaged summaries
-var_sum <- fds_var %>%
-  filter(site == example_site, species %in% top_species) %>%
-  group_by(species, year_pair, requested_sample_size) %>%
-  summarize(mean_det = mean(mean_detection, na.rm = TRUE),
-            lo       = mean(ci_lower, na.rm = TRUE),
-            hi       = mean(ci_upper, na.rm = TRUE),
-            .groups  = "drop")
+# species-level summary: mean + CI (variable view)
+# full_detection_summary already species-level; normalize names if needed
+fds <- full_detection_summary %>%
+  mutate(
+    year_pair = dplyr::coalesce(.data$year_pair, paste0(.data$year_baseline, "_", .data$year_changed))
+  )
+if ("detect_prob" %in% names(fds) && !"mean_detection" %in% names(fds)) {
+  fds <- fds %>% rename(mean_detection = detect_prob)
+}
+if ("requested_sample_size" %in% names(fds)) {
+  fds <- fds %>% mutate(sample_size = requested_sample_size)
+}
 
-p <- ggplot(var_sum, aes(requested_sample_size, mean_det, color = species, group = species)) +
-  geom_line(size = 0.7) + geom_point(size = 1.6) +
+var_sum <- fds %>%
+  filter(site == example_site, species %in% top_species, sample_size >= MIN_N) %>%
+  group_by(species, year_pair, sample_size) %>%
+  summarise(
+    mean_det = mean(mean_detection, na.rm = TRUE),
+    lo       = mean(ci_lower, na.rm = TRUE),
+    hi       = mean(ci_upper, na.rm = TRUE),
+    .groups  = "drop"
+  )
+
+p <- ggplot(var_sum, aes(sample_size, mean_det, color = species, group = species)) +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2) +
   geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.3, alpha = 0.5) +
   geom_hline(yintercept = threshold, linetype = "dashed") +
   scale_y_continuous(limits = c(0,1)) +
-  scale_x_continuous(breaks = sort(unique(var_sum$requested_sample_size))) +
+  scale_x_continuous(breaks = sort(unique(var_sum$sample_size))) +
   facet_wrap(~ year_pair, scales = "free_x") +
-  labs(x = "Requested sample size (K)", y = "Detection probability") +
+  labs(x = "Sample size (plots)", y = "Detection probability") +
   theme_minimal(base_size = 12) +
   theme(legend.position = "bottom")
 
-# Baseline overlays if available
-# for the baseline overlay:
-if (nrow(fds_base)) {
-  base_pts <- fds_base %>%
-    filter(site == example_site, species %in% top_species) %>%
-    transmute(species, year_pair, x = actual_sample_size, y = mean_detection)
-  p <- p + geom_point(data = base_pts, aes(x = x, y = y),
-                      inherit.aes = FALSE, shape = 21, size = 2.2, stroke = 0.8)
+# Baseline overlays (species-level means) if available
+if (!is.null(cdb)) {
+  base_pts <- cdb %>%
+    filter(site == example_site, species %in% top_species, sample_size >= MIN_N) %>%
+    transmute(species, year_pair, sample_size, y = mean_detection)
+  if (nrow(base_pts)) {
+    p <- p + geom_point(data = base_pts, aes(x = sample_size, y = y),
+                        inherit.aes = FALSE, shape = 21, size = 2.2, stroke = 0.8) +
+      geom_line(data = base_pts, aes(x = sample_size, y = y, group = species),
+                inherit.aes = FALSE, linetype = "dotted", alpha = 0.6)
+  }
 }
 p
+
 ```
 
-## 3.2 Posterior distribution example (real draws if available)
+## Posterior distribution example (per-draw CWM)
 
 ```{r posterior-example, fig.cap='Figure 2. Posterior difference distribution for an example species × year pair at the example site. Dashed line marks a +20% increase.', warning=FALSE}
 # Helper to choose an example species × pair present in summaries
-get_example_sp_pair <- function(df, site) {
-  d <- df %>% filter(site == site)
-  if (!nrow(d)) return(list(sp = NA_character_, pair = NA_character_))
-  list(sp = d$species[1], pair = d$year_pair[1])
-}
 
-# Try to find a parquet draws file for the chosen pair/species
-find_draws_file <- function(species, year_pair) {
-  # 1) If an index object exists, filter it
-  if (exists("draws_idx_variable")) {
-    idx <- draws_idx_variable
-    if ("species" %in% names(idx)) idx <- idx %>% dplyr::filter(.data$species == species)
-    if ("year_pair" %in% names(idx)) idx <- idx %>% dplyr::filter(.data$year_pair == year_pair)
-    if (nrow(idx) && "file" %in% names(idx)) return(idx$file[1])
-  }
-  # 2) Otherwise, search outputs for parquet files
-  cand <- tryCatch(list.files("outputs", pattern = "\\.parquet$", recursive = TRUE, full.names = TRUE), error = function(e) character())
-  if (length(cand)) return(cand[1])
-  NA_character_
-}
-
-# Choose an example
-tmp <- full_detection_summary %>%
-  mutate(year_pair = coalesce(.data$year_pair, paste0(.data$year_baseline, "_", .data$year_changed))) %>%
-  filter(site == example_site)
-if (!nrow(tmp)) { plot.new(); title("No data for example site."); } else {
-  one_sp   <- tmp$species[1]
-  one_pair <- tmp$year_pair[1]
-  f <- find_draws_file(one_sp, one_pair)
-  if (!is.na(f) && file.exists(f)) {
-    dd <- tryCatch(arrow::read_parquet(f), error = function(e) NULL)
-  } else dd <- NULL
-
-  if (!is.null(dd)) {
-    # Heuristics to find a difference column
-    diff_col <- intersect(c("difference","delta","diff","change","d"), names(dd))
-    if (!length(diff_col) && all(c("changed","baseline") %in% names(dd))) {
-      dd$difference <- dd$changed - dd$baseline
-      diff_col <- "difference"
-    }
-    if (length(diff_col)) {
-      if ("species" %in% names(dd)) dd <- dd %>% dplyr::filter(.data$species == one_sp)
-      ggplot(dd, aes(.data[[diff_col[1]]])) +
-        geom_histogram(bins = 40) +
-        geom_vline(xintercept = 0.20, linetype = "dashed") +
-        labs(x = "Posterior difference (changed − baseline)", y = "Frequency")
+if (!has_draws_idx_var) {
+  plot.new(); title("No draws index available."); 
+} else {
+  # choose an index row with N >= MIN_N for the example site (filenames may not encode site; join via year_pair/replicate)
+  idx <- draws_idx_variable %>%
+    left_join(cd_var %>% distinct(site, year_pair, replicate, sample_size),
+              by = c("year_pair","replicate")) %>%
+    filter(site == example_site, sample_size >= MIN_N) %>%
+    arrange(sample_size)
+  if (!nrow(idx)) { plot.new(); title("No qualifying draws for example site and N ≥ min."); } else {
+    fp <- idx$file[[1]]
+    dd <- tryCatch(arrow::read_parquet(fp), error = function(e) NULL)
+    if (is.null(dd) || !"detected" %in% names(dd)) {
+      plot.new(); title("Draws file found, but missing `detected` column.")
     } else {
-      plot.new(); title("Draws file found, but no difference column detected.")
+      # average relative cover across plots per species & year
+      rc <- relative_cover_df %>%
+        rename(site = siteID, species = taxonID) %>%
+        group_by(site, species, year) %>%
+        summarise(mean_relative_cover = mean(relative_cover, na.rm = TRUE), .groups = "drop")
+
+      # compute draw-level CWM distribution
+      dist_df <- dd %>%
+        mutate(
+          year_baseline = as.integer(year_baseline),
+          year_changed  = as.integer(year_changed)
+        ) %>%
+        left_join(rc, by = c("site","species","year_baseline"="year")) %>% rename(rc_b = mean_relative_cover) %>%
+        left_join(rc, by = c("site","species","year_changed" ="year")) %>% rename(rc_c = mean_relative_cover) %>%
+        mutate(w = rowMeans(cbind(rc_b, rc_c), na.rm = TRUE)) %>%
+        filter(!is.na(w)) %>%
+        mutate(weighted = as.numeric(detected) * w) %>%
+        group_by(draw) %>%
+        summarise(cwm_draw = sum(weighted, na.rm = TRUE) / sum(w, na.rm = TRUE), .groups = "drop")
+
+      ggplot(dist_df, aes(x = cwm_draw)) +
+        geom_histogram(bins = 40) +
+        geom_vline(xintercept = threshold, linetype = "dashed") +
+        scale_x_continuous(limits = c(0,1)) +
+        labs(x = "Community-weighted detection (per draw)", y = "Count")
     }
-  } else {
-    # Graceful fallback: approximate from summary mean & CI if present
-    # (This is only a visualization aid; it does not replace true posterior draws.)
-    srow <- tmp %>% slice(1)
-    mu <- srow$mean_detection
-    lo <- srow$ci_lower; hi <- srow$ci_upper
-    x <- seq(0, 1, length.out = 200)
-    # crude beta fit from mean and CI width (fallback)
-    alpha <- max(1, mu * 50); beta <- max(1, (1 - mu) * 50)
-    y <- dbeta(x, alpha, beta)
-    ggplot(data.frame(x, y), aes(x, y)) +
-      geom_line() +
-      geom_vline(xintercept = 0.80, linetype = "dashed") +
-      labs(x = "Detection probability", y = "Density")
   }
 }
+
 ```
 
-## 3.3 Community-weighted detection by year pair (example site)
+## Community-weighted detection by year pair (example site)
 
 ```{r cwm-by-pair, fig.cap='Figure 3. Community-weighted detection by year pair (variable mode) at the example site.'}
-summ$rep_avg %>%
-  filter(site == example_site) %>%
-  cwm_plot_by_yearpair(threshold = threshold)
+p <- ggplot(rep_avg_var_site, aes(x = sample_size, y = mean_detection, color = year_pair, group = year_pair)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = threshold, linetype = "dashed") +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(breaks = sort(unique(rep_avg_var_site$sample_size))) +
+  labs(x = "Sample size (plots)", y = "Detection probability", color = "Year pair") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+add_baseline_layer(p, rep_avg_base_site, yvar = "mean_detection")
+
 ```
 
-## 3.4 Mean across year pairs (example site)
+## Mean across year pairs (example site)
 
 ```{r cwm-mean, fig.cap='Figure 4. Mean community-weighted detection across year pairs (variable mode) at the example site.'}
-summ$site_avg %>%
-  filter(site == example_site) %>%
-  cwm_plot_mean_across_yearpairs(threshold = threshold)
+p <- ggplot(site_avg_var_site, aes(x = sample_size, y = detection_mean, group = 1)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2) +
+  geom_hline(yintercept = threshold, linetype = "dashed") +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(breaks = sort(unique(site_avg_var_site$sample_size))) +
+  labs(x = "Sample size (plots)", y = "Detection probability") +
+  theme_minimal(base_size = 12)
+add_baseline_layer(p, site_avg_base_site, yvar = "detection_mean")
+
 ```
 
-## 3.5 Site-level decision summary (variable mode)
+## Site-level decision summary (variable mode)
 
 ```{r decision-summary, fig.cap='Figure 5. Fraction of year pairs meeting the 0.8 detection threshold by requested sample size (variable mode).'}
-decision_df <- fds_var %>%
-  group_by(year_pair, requested_sample_size) %>%
-  summarize(pair_mean = mean(mean_detection, na.rm = TRUE), .groups = "drop") %>%
-  group_by(requested_sample_size) %>%
-  summarize(frac_pairs_meeting_threshold = mean(pair_mean >= 0.8, na.rm = TRUE),
-            .groups = "drop") %>%
-  arrange(requested_sample_size)
+frac_tbl <- fraction_passing(rep_avg_var, threshold = threshold) %>%
+  arrange(site, sample_size)
 
-kable(decision_df, caption = "Table 1. Fraction of year pairs meeting the 0.8 detection threshold by requested sample size.")
-ggplot(decision_df, aes(requested_sample_size, frac_pairs_meeting_threshold)) +
-  geom_line() + geom_point() +
-  scale_x_continuous(breaks = possible_K) +
+ggplot(frac_tbl, aes(x = sample_size, y = prop_yearpairs_passing, group = site)) +
+  geom_line(alpha = 0.4) +
+  geom_point(alpha = 0.6, size = 1.8) +
   scale_y_continuous(limits = c(0,1)) +
-  labs(x = "Requested sample size (K)", y = "Fraction of year pairs ≥ 0.8")
+  scale_x_continuous(breaks = sort(unique(frac_tbl$sample_size))) +
+  labs(x = "Sample size (plots)", y = "Fraction of year pairs ≥ 0.8") +
+  theme_minimal(base_size = 12)
+
+# Table: add baseline comparison when available (matching by site × N)
+var_pass <- frac_tbl %>%
+  rename(fraction_yearpairs_passing = prop_yearpairs_passing,
+         mean_detection_at_N        = mean_at_size,
+         sd_detection_at_N          = sd_at_size)
+
+base_compact <- if (!is.null(site_avg_base)) site_avg_base %>%
+  select(site, sample_size, baseline_detection_at_N = detection_mean) else tibble()
+
+site_table <- var_pass %>%
+  left_join(base_compact, by = c("site","sample_size")) %>%
+  arrange(site, sample_size)
+
+knitr::kable(
+  site_table,
+  caption = "Table 1. Fraction of year pairs meeting the 0.8 detection threshold by requested sample size (variable mode), with baseline mean detection at the same N when available."
+)
+
+
 ```
 
-# 4 Discussion
+# Discussion
 
-**Current status and headroom.** Baseline overlays show how well the existing plot network detects interannual change given current coverage. Variable-K curves indicate how close reduced effort comes to that upper bound.  
-**From species to community.** Species signals are heterogeneous; weighting by relative cover yields clear, aggregated community detection while keeping uncertainty explicit.  
-**Why include `nlcdClass`.** Including land-cover class during fitting absorbs background habitat differences and increases sensitivity to year-to-year change.  
-**Clear decision language.** We report the fraction of year pairs meeting a pre-specified detection criterion (0.8). This is transparent and site-specific.
+Current status and headroom. Baseline overlays show how well the existing plot network detects interannual change given current coverage. Variable-
+𝑁
+N curves indicate how close reduced effort comes to that upper bound.
+From species to community. Species signals are heterogeneous; weighting by relative cover yields a clear community signal with uncertainty.
+Small-
+𝑁
+N points. By default, plots suppress 
+𝑁
+<
+N< r MIN_N. If you need to display 
+𝑁
+=
+1
+N=1, set params$min_sample_size lower before rendering.
+Clear decision language. We summarize the fraction of year pairs meeting a pre-specified detection criterion (0.8), which is transparent and site-specific.
 
 # Appendix {-}
 
 ## A.1 All sites: CWM detection by year pair
 
 ```{r app-all-by-yearpair, fig.cap='Figure A1. Community-weighted detection by year pair for all sites (variable mode).'}
-cwm_plot_by_yearpair(summ$rep_avg, threshold = threshold)
+ggplot(rep_avg_var, aes(x = sample_size, y = mean_detection, color = year_pair, group = year_pair)) +
+  geom_line(alpha = 0.6) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = threshold, linetype = "dashed") +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(breaks = sort(unique(rep_avg_var$sample_size))) +
+  labs(x = "Sample size (plots)", y = "Detection probability", color = "Year pair") +
+  theme_minimal(base_size = 12) +
+  theme(legend.position = "bottom")
+
 ```
 
 ## A.2 All sites: Mean across year pairs
 
 ```{r app-all-mean, fig.cap='Figure A2. Mean community-weighted detection across year pairs for all sites (variable mode).'}
-cwm_plot_mean_across_yearpairs(summ$site_avg, threshold = threshold)
+ggplot(site_avg_var, aes(x = sample_size, y = detection_mean, group = site)) +
+  geom_line(alpha = 0.6) +
+  geom_point(alpha = 0.7) +
+  geom_hline(yintercept = threshold, linetype = "dashed") +
+  scale_y_continuous(limits = c(0,1)) +
+  scale_x_continuous(breaks = sort(unique(site_avg_var$sample_size))) +
+  labs(x = "Sample size (plots)", y = "Detection probability") +
+  theme_minimal(base_size = 12)
+
 ```
+
+
+##References
+- Barnett, D. T., et al. (2019a). The plant diversity sampling design for the National Ecological Observatory Network. *Ecosphere*, 10(2), e02603.
+- Barnett, D. T., et al. (2019b). The terrestrial organism and biogeochemistry spatial sampling design for the National Ecological Observatory Network. *Ecosphere*, 10(2), e02604.
+- Clark, J. S., et al. (2017). Generalized joint attribute modeling for biodiversity analysis: Median-zero, multivariate, multifarious data. *Ecological Monographs*, 87(1), 34–56.
+

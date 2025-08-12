@@ -10,6 +10,11 @@ tar_option_set(
   format = "rds"
 )
 
+# ---- quick/slow knobs (env-driven) ----
+.quick <- identical(tolower(Sys.getenv("GJAM_QUICK", "false")), "true")
+.SS    <- if (.quick) c(5, 10) else c(5, 10, 15, 20, 25)
+.REP   <- if (.quick) 1L       else 3L
+
 # Auto-source every R file in the R/ folder (your functions live there)
 targets::tar_source("R")
 
@@ -114,8 +119,8 @@ list(
     sensitivity_results_variable,
     run_sample_size_sensitivity_variable(
       fit_result   = test_result_norm,
-      sample_sizes = c(5, 10, 15, 20, 25),
-      n_replicates = 3,
+      sample_sizes = .SS, #c(5, 10, 15, 20, 25),
+      n_replicates = .REP,  #3,
       seed         = 123
     )
   ),
@@ -137,7 +142,7 @@ list(
       relative_cover_df   = relative_cover_df,
       draws_df            = read_draws_index(sensitivity_results_variable$draws)
     )
-  ),  # <-- needed comma here
+  ),
   
   # Variable mode summaries (reads Parquet draws on demand)
   tar_target(
@@ -147,6 +152,7 @@ list(
       draws_df   = read_draws_index(sensitivity_results_variable$draws)
     )
   ),
+  
   tar_target(
     community_detection_variable,
     evaluate_community_weighted_detection(
@@ -164,6 +170,7 @@ list(
       draws_df   = read_draws_index(sensitivity_results_baseline$draws)
     )
   ),
+  
   tar_target(
     community_detection_baseline,
     evaluate_community_weighted_detection(
@@ -173,14 +180,13 @@ list(
     )
   ),
   
+  
   # Make sure outputs/ exists
   tar_target(
     outputs_dir,
     make_outputs_dir("outputs")
   ),
   
-  # Render report (HTML by default). We inject the needed objects into the Rmd env.
-  # Render report (HTML by default). We inject the needed objects into the Rmd env.
   tar_target(
     detection_report,
     {

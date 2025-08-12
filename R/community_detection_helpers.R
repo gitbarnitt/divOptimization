@@ -6,6 +6,21 @@ suppressPackageStartupMessages({
   library(stringr)
 })
 
+# Harmonize community table schema (old/new)
+sanitize_community <- function(df) {
+  if (!is.data.frame(df) || !nrow(df)) return(df)
+  # bring back legacy name if needed
+  if (!"weighted_detection" %in% names(df) && "cwm_mean" %in% names(df)) {
+    df <- dplyr::rename(df, weighted_detection = cwm_mean)
+  }
+  # ensure year_pair exists
+  if (!"year_pair" %in% names(df) &&
+      all(c("year_baseline","year_changed") %in% names(df))) {
+    df <- dplyr::mutate(df, year_pair = paste0(.data$year_baseline, "_", .data$year_changed))
+  }
+  df
+}
+
 .require_cols <- function(df, cols, where = "data") {
   missing <- setdiff(cols, names(df))
   if (length(missing)) {
@@ -16,6 +31,7 @@ suppressPackageStartupMessages({
 
 # 1) Average replicates per site × sample_size × year_pair
 cwm_average_replicates <- function(community_df) {
+  community_df <- sanitize_community(community_df)
   .require_cols(
     community_df,
     c("site", "sample_size", "replicate", "weighted_detection"),
@@ -51,6 +67,7 @@ cwm_average_replicates <- function(community_df) {
 
 # 2) Plot all year_pairs (one panel per site)
 cwm_plot_by_yearpair <- function(rep_avg_df, sites = NULL, threshold = 0.8) {
+  rep_avg_df <- sanitize_community(rep_avg_df)
   .require_cols(rep_avg_df, c("site", "sample_size", "year_pair", "mean_detection"), "rep_avg_df")
   if (!is.null(sites)) rep_avg_df <- dplyr::filter(rep_avg_df, site %in% sites)
   
@@ -79,6 +96,7 @@ cwm_plot_by_yearpair <- function(rep_avg_df, sites = NULL, threshold = 0.8) {
 
 # 3) Summarise across year_pairs per site × sample_size
 cwm_summarise_across_yearpairs <- function(rep_avg_df) {
+  rep_avg_df <- sanitize_community(rep_avg_df)
   .require_cols(rep_avg_df, c("site", "sample_size", "year_pair", "mean_detection"), "rep_avg_df")
   
   rep_avg_df %>%
@@ -95,6 +113,7 @@ cwm_summarise_across_yearpairs <- function(rep_avg_df) {
 
 # 4) Plot mean across year_pairs (one panel per site)
 cwm_plot_mean_across_yearpairs <- function(site_summary_df, sites = NULL, threshold = 0.8) {
+  site_summary_df <- sanitize_community(site_summary_df)
   .require_cols(site_summary_df, c("site", "sample_size", "detection_mean"), "site_summary_df")
   if (!is.null(sites)) site_summary_df <- dplyr::filter(site_summary_df, site %in% sites)
   
@@ -117,6 +136,7 @@ cwm_plot_mean_across_yearpairs <- function(site_summary_df, sites = NULL, thresh
 
 # 5) Site-level target table (Rule-H style)
 cwm_site_target_table <- function(rep_avg_df, threshold = 0.8, pct_yearpairs = 0.75) {
+  rep_avg_df <- sanitize_community(rep_avg_df)
   .require_cols(rep_avg_df, c("site", "sample_size", "year_pair", "mean_detection"), "rep_avg_df")
   
   pass_table <- rep_avg_df %>%
@@ -154,6 +174,7 @@ cwm_site_target_table <- function(rep_avg_df, threshold = 0.8, pct_yearpairs = 0
 
 # 6) Convenience wrapper
 cwm_build_all_summaries <- function(community_detection_df, threshold = 0.8, pct_yearpairs = 0.75) {
+  community_detection_df <- sanitize_community(community_detection_df)
   rep_avg  <- cwm_average_replicates(community_detection_df)
   site_avg <- cwm_summarise_across_yearpairs(rep_avg)
   site_tbl <- cwm_site_target_table(rep_avg, threshold = threshold, pct_yearpairs = pct_yearpairs)
