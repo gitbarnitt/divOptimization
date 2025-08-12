@@ -26,20 +26,9 @@ make_outputs_dir <- function(path = "outputs") {
 
 list(
   # Raw data path (file target)
-  # tar_target(
-  #   plant_data_file,
-  #   file.path(Sys.getenv("INPUT_DIR", "/input"), "plant_data.rds"),   #"data/plant_data.rds",
-  #   format = "file"
-  # ),
-  
-  #map to the data in gcp now
   tar_target(
     plant_data_file,
-    {
-      path <- Sys.getenv("INPUT_RDS_PATH", "/input/plant_data.rds")
-      if (!file.exists(path)) stop(sprintf("Input RDS not found at: %s", path), call. = FALSE)
-      path
-    },
+    file.path(Sys.getenv("INPUT_DIR", "/input"), "plant_data.rds"),   #"data/plant_data.rds",
     format = "file"
   ),
   
@@ -230,14 +219,13 @@ list(
       env$fit_info                        <- test_result_norm
       
       rmarkdown::render(
-        input         = "detection_report.Rmd",
-        output_file   = "outputs/detection_report.pdf",
-        output_format = "pdf_document",
-        params        = list(example_site = "HARV", top_n_species = 6),
-        envir         = env,
-        quiet         = TRUE
+        input       = "detection_report.Rmd",
+        output_file = "outputs/detection_report.pdf",
+        params      = list(example_site = "JERC", top_n_species = 6),
+        envir       = env,
+        quiet       = TRUE
       )
-      "outputs/detection_report.pdf"
+      "outputs/detection_report.html"
     },
     format = "file"
   )
