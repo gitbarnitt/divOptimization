@@ -220,7 +220,7 @@ list(
       
       rmarkdown::render(
         input       = "detection_report.Rmd",
-        output_file = "outputs/detection_report.html",
+        output_file = "outputs/detection_report.pdf",
         params      = list(example_site = "JERC", top_n_species = 6),
         envir       = env,
         quiet       = TRUE

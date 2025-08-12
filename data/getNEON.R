@@ -70,6 +70,21 @@ div_1m2Data <- dplyr::select(div_1m2Data, domainID,	siteID,	year, nlcdClass, eve
 div_1m2Data <- filter(div_1m2Data, plotType == 'distributed') %>%
   select(-plotType)
 
+###limit to 1 bout
+library(dplyr)
+
+div_1m2Data <- div_1m2Data %>%
+  group_by(siteID, year) %>%
+  filter(
+    (siteID == "GRSM" & (
+      (any(boutNumber == 1) & any(boutNumber == 2) & boutNumber == 2) |
+        (!any(boutNumber == 2) & boutNumber == 1)
+    )) |
+      (siteID != "GRSM" & boutNumber == 1)
+  ) %>%
+  ungroup()
+
+
 #get only 1 bout per site for these purposes
 #div_1m2Data <- div_1m2Data %>%
 #  filter(!(siteID %in% c("OAES", "JORN", "SRER") & boutNumber == 1))
@@ -88,9 +103,7 @@ div_1m2Data <- filter(div_1m2Data, plotType == 'distributed') %>%
 
 str(div_1m2Data)
 
-saveRDS(div_1m2Data, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
-
-subsetData <- readRDS('C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/project/data/plant_data.rds')
+saveRDS(div_1m2Data, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/allData/plant_data.rds')
 
 subsetData <- subsetData %>%
   filter(siteID == "OSBS", year %in% c(2022, 2023, 2024)) %>%
@@ -98,7 +111,19 @@ subsetData <- subsetData %>%
   slice_head(n = 5) %>%
   inner_join(subsetData, by = "plotID")
 
+#harv and jerc
+subsetDataJercHarv <- div_1m2Data %>%
+  filter(siteID == "HARV" | siteID == "JERC")
+saveRDS(subsetDataJercHarv, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/jercHarv/plant_data.rds')
+
+
+#subsetData <- readRDS('C:/Users/dbarnett/Documents/GitHub/NEON-OS-optimization/plantDiversity/v2/project/data/plant_data.rds')
+
+
+
+
 saveRDS(subsetData, 'C:/Users/dbarnett/Documents/GitHub/divOptimization/data/plant_data.rds')
+
 
 #####
 #look at data:
@@ -123,4 +148,10 @@ sp <- dataIn %>%
   summarise(numbSp = n()) %>%
   ungroup()
   
+#####muck about
+grsmCheck <- div_1m2Data %>%
+  filter(siteID == "GRSM") 
+  
+twos <- div_1m2Data %>%
+  filter(boutNumber == 2)
   
