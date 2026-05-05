@@ -1,0 +1,23 @@
+Package: NEON-OS-optimization
+Title: Plant Diversity Optimization job container
+Version: 0.0.1
+Authors@R: c(person("Dave", "Barnett", email = "dbarnett@battelleecology.org", role = "aut"),
+             person("Jim", "Coloso", email = "jcoloso@battelleecology.org", role = c("aut", "cre"))
+            )
+Description: Automated job to render plant diversity optimization reports.
+License: Private
+URL: https://https://github.com/NEONScience/NEON-OS-optimization/plantDivOptimizationJob
+BugReports: https://github.com/NEONScience/NEON-OS-optimization//issues
+Imports:
+  DT,
+  gargle,
+  googleCloudStorageR,
+  gjam,
+  targets,
+  tarchetypes,
+  coda,
+
+  
+
+
+

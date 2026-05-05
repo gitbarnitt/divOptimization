@@ -1,0 +1,47 @@
+"Domain","Site","Site Code","Species (≥3% cover)","trend_K_star","trend_detection_K30","K_CV50","CV_K30"
+"D01","Bartlett Experimental Forest","BART",7,NA,57.1,10,0
+"D01","Harvard Forest & Quabbin Watershed","HARV",47,NA,38.3,20,0
+"D02","Blandy Experimental Farm","BLAN",30,5,NA,10,NA
+"D02","Smithsonian Conservation Biology Institute","SCBI",58,NA,NA,15,NA
+"D02","Smithsonian Environmental Research Center","SERC",35,NA,49.1,20,0
+"D03","Disney Wilderness Preserve","DSNY",92,NA,50,8,0
+"D03","The Jones Center At Ichauway","JERC",122,NA,NA,10,NA
+"D03","Ordway-Swisher Biological Station","OSBS",54,NA,NA,5,NA
+"D04","Guánica Forest","GUAN",77,NA,NA,5,NA
+"D04","Lajas Experimental Station","LAJA",83,5,NA,10,NA
+"D05","Steigerwaldt-Chequamegon","STEI",71,NA,NA,6,NA
+"D05","Treehaven","TREE",49,5,NA,6,NA
+"D05","University of Notre Dame Environmental Research Center","UNDE",44,NA,NA,7,NA
+"D06","Konza Prairie Agroecosystem","KONA",9,NA,NA,8,NA
+"D06","Konza Prairie Biological Station","KONZ",52,NA,NA,13,NA
+"D06","University of Kansas Field Station","UKFS",68,5,NA,15,NA
+"D07","Great Smoky Mountains National Park","GRSM",47,NA,53.2,10,0
+"D07","Mountain Lake Biological Station","MLBS",48,5,NA,5,NA
+"D07","Oak Ridge","ORNL",64,NA,NA,15,NA
+"D08","Lenoir Landing","LENO",33,NA,NA,5,NA
+"D08","Talladega National Forest","TALL",64,NA,NA,10,NA
+"D09","Dakota Coteau Field Site","DCFS",36,5,55.6,5,0
+"D09","Northern Great Plains Research Laboratory","NOGP",49,NA,49,5,0
+"D09","Chase Lake National Wildlife Refuge","WOOD",45,NA,NA,7,NA
+"D10","Central Plains Experimental Range","CPER",22,NA,NA,5,NA
+"D10","Rocky Mountains","RMNP",19,NA,68.4,5,0
+"D10","North Sterling","STER",16,NA,NA,5,NA
+"D11","Lyndon B. Johnson National Grassland","CLBJ",63,NA,NA,5,NA
+"D11","Marvin Klemme Range Research Station","OAES",47,NA,62.8,8,0
+"D12","Yellowstone National Park","YELL",29,NA,NA,5,NA
+"D13","Moab","MOAB",4,5,NA,6,NA
+"D13","Niwot Ridge","NIWO",30,NA,50,20,0
+"D14","Jornada Experimental Range","JORN",5,NA,60,5,0
+"D14","Santa Rita Experimental Range","SRER",38,NA,NA,5,NA
+"D15","Onaqui","ONAQ",9,NA,NA,5,NA
+"D16","Abby Road","ABBY",43,5,NA,7,NA
+"D16","Wind River Experimental Forest","WREF",23,NA,NA,5,NA
+"D17","San Joaquin Experimental Range","SJER",40,5,NA,5,NA
+"D17","Soaproot Saddle","SOAP",46,NA,NA,5,NA
+"D17","Lower Teakettle","TEAK",29,NA,NA,10,NA
+"D18","Utqiaġvik","BARR",10,NA,NA,5,NA
+"D18","Toolik Field Station","TOOL",19,NA,NA,10,NA
+"D19","Caribou-Poker Creeks Research Watershed","BONA",26,NA,NA,20,NA
+"D19","Delta Junction","DEJU",24,5,NA,20,NA
+"D19","Healy","HEAL",36,5,NA,NA,NA
+"D20","Pu'u Maka'ala Natural Area Reserve","PUUM",20,NA,NA,12,NA

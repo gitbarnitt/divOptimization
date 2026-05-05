@@ -1,0 +1,47 @@
+Domain,Site,Site Code,Years,Year Range,Species (observed),Species (modeled),Species (≥3% cover)
+D01,Bartlett Experimental Forest,BART,11,2014-2024,95,44,7
+D01,Harvard Forest & Quabbin Watershed,HARV,11,2014-2024,322,145,47
+D02,Blandy Experimental Farm,BLAN,10,2015-2024,292,149,30
+D02,Smithsonian Conservation Biology Institute,SCBI,11,2014-2024,406,226,58
+D02,Smithsonian Environmental Research Center,SERC,9,2015-2024,285,171,35
+D03,Disney Wilderness Preserve,DSNY,10,2014-2024,612,304,92
+D03,Ordway-Swisher Biological Station,OSBS,11,2013-2024,512,212,54
+D03,The Jones Center At Ichauway,JERC,10,2014-2024,823,406,122
+D04,Guánica Forest,GUAN,10,2015-2024,229,121,77
+D04,Lajas Experimental Station,LAJA,9,2016-2024,226,108,83
+D05,Steigerwaldt-Chequamegon,STEI,10,2015-2024,418,190,71
+D05,Treehaven,TREE,10,2015-2024,411,191,49
+D05,University of Notre Dame Environmental Research Center,UNDE,11,2014-2024,393,198,44
+D06,Konza Prairie Agroecosystem,KONA,8,2017-2024,113,46,9
+D06,Konza Prairie Biological Station,KONZ,9,2016-2024,355,195,52
+D06,University of Kansas Field Station,UKFS,9,2016-2024,383,207,68
+D07,Great Smoky Mountains National Park,GRSM,5,2015-2024,259,126,47
+D07,Mountain Lake Biological Station,MLBS,8,2017-2024,217,124,48
+D07,Oak Ridge,ORNL,11,2014-2024,370,186,64
+D08,Lenoir Landing,LENO,8,2016-2024,289,161,33
+D08,Talladega National Forest,TALL,11,2014-2024,452,244,64
+D09,Chase Lake National Wildlife Refuge,WOOD,11,2014-2024,282,127,45
+D09,Dakota Coteau Field Site,DCFS,8,2017-2024,264,143,36
+D09,Northern Great Plains Research Laboratory,NOGP,9,2016-2024,257,125,49
+D10,Central Plains Experimental Range,CPER,12,2013-2024,206,122,22
+D10,North Sterling,STER,11,2014-2024,70,39,16
+D10,Rocky Mountains,RMNP,8,2017-2024,215,98,19
+D11,Lyndon B. Johnson National Grassland,CLBJ,7,2016-2024,491,249,63
+D11,Marvin Klemme Range Research Station,OAES,9,2015-2024,397,224,47
+D12,Yellowstone National Park,YELL,6,2018-2024,421,185,29
+D13,Moab,MOAB,8,2015-2024,174,95,4
+D13,Niwot Ridge,NIWO,10,2015-2024,247,147,30
+D14,Jornada Experimental Range,JORN,9,2015-2024,171,91,5
+D14,Santa Rita Experimental Range,SRER,9,2016-2024,441,271,38
+D15,Onaqui,ONAQ,10,2014-2024,181,90,9
+D16,Abby Road,ABBY,8,2017-2024,247,129,43
+D16,Wind River Experimental Forest,WREF,7,2018-2024,123,60,23
+D17,Lower Teakettle,TEAK,5,2019-2024,199,70,29
+D17,San Joaquin Experimental Range,SJER,8,2017-2024,252,130,40
+D17,Soaproot Saddle,SOAP,6,2018-2024,317,131,46
+D18,Toolik Field Station,TOOL,8,2017-2024,188,105,19
+D18,Utqiaġvik,BARR,7,2017-2024,90,56,10
+D19,Caribou-Poker Creeks Research Watershed,BONA,8,2017-2024,84,46,26
+D19,Delta Junction,DEJU,9,2016-2024,182,98,24
+D19,Healy,HEAL,10,2015-2024,136,78,36
+D20,Pu'u Maka'ala Natural Area Reserve,PUUM,7,2018-2024,122,61,20

@@ -1,0 +1,47 @@
+"Domain","Site","Site Code","Species (≥3% cover)","K*","Detection at K = 30 (%)"
+"D01","Bartlett Experimental Forest","BART",7,5,57.1
+"D03","The Jones Center At Ichauway","JERC",122,10,94.3
+"D02","Smithsonian Environmental Research Center","SERC",35,10,77.1
+"D14","Santa Rita Experimental Range","SRER",38,10,89.5
+"D08","Talladega National Forest","TALL",64,10,93.8
+"D11","Lyndon B. Johnson National Grassland","CLBJ",63,15,95.2
+"D08","Lenoir Landing","LENO",33,15,90.9
+"D13","Moab","MOAB",4,15,100
+"D17","Soaproot Saddle","SOAP",46,15,91.3
+"D05","Steigerwaldt-Chequamegon","STEI",71,15,88.7
+"D05","University of Notre Dame Environmental Research Center","UNDE",44,15,90.9
+"D03","Disney Wilderness Preserve","DSNY",92,20,91.3
+"D07","Great Smoky Mountains National Park","GRSM",47,20,89.4
+"D14","Jornada Experimental Range","JORN",5,20,80
+"D11","Marvin Klemme Range Research Station","OAES",47,20,87.2
+"D15","Onaqui","ONAQ",9,20,88.9
+"D07","Oak Ridge","ORNL",64,20,92.2
+"D03","Ordway-Swisher Biological Station","OSBS",54,20,94.4
+"D16","Abby Road","ABBY",43,25,90.7
+"D01","Harvard Forest & Quabbin Watershed","HARV",47,25,83
+"D06","Konza Prairie Biological Station","KONZ",52,25,88.5
+"D13","Niwot Ridge","NIWO",30,25,86.7
+"D09","Northern Great Plains Research Laboratory","NOGP",49,25,83.7
+"D09","Chase Lake National Wildlife Refuge","WOOD",45,25,86.7
+"D10","Rocky Mountains","RMNP",19,30,84.2
+"D02","Smithsonian Conservation Biology Institute","SCBI",58,30,81
+"D17","San Joaquin Experimental Range","SJER",40,30,90
+"D06","University of Kansas Field Station","UKFS",68,30,82.4
+"D16","Wind River Experimental Forest","WREF",23,30,82.6
+"D18","Utqiaġvik","BARR",10,NA,70
+"D02","Blandy Experimental Farm","BLAN",30,NA,NA
+"D19","Caribou-Poker Creeks Research Watershed","BONA",26,NA,73.1
+"D10","Central Plains Experimental Range","CPER",22,NA,68.2
+"D09","Dakota Coteau Field Site","DCFS",36,NA,69.4
+"D19","Delta Junction","DEJU",24,NA,70.8
+"D04","Guánica Forest","GUAN",77,NA,NA
+"D19","Healy","HEAL",36,NA,66.7
+"D06","Konza Prairie Agroecosystem","KONA",9,NA,66.7
+"D04","Lajas Experimental Station","LAJA",83,NA,63.9
+"D07","Mountain Lake Biological Station","MLBS",48,NA,77.1
+"D20","Pu'u Maka'ala Natural Area Reserve","PUUM",20,NA,NA
+"D10","North Sterling","STER",16,NA,NA
+"D17","Lower Teakettle","TEAK",29,NA,NA
+"D18","Toolik Field Station","TOOL",19,NA,47.4
+"D05","Treehaven","TREE",49,NA,NA
+"D12","Yellowstone National Park","YELL",29,NA,NA

@@ -1,0 +1,877 @@
+---
+title: "&nbsp;"
+fontsize: 11pt
+geometry: margin=1in, includefoot, top=1in, bottom=1.25in
+header-includes:
+- \usepackage{fancyhdr}
+- \usepackage{ragged2e}
+#- \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+- \usepackage{lastpage}
+- \usepackage{hyperref}
+- \usepackage[hypcap]{caption}
+- \usepackage{array}
+- \usepackage{graphicx}
+- \usepackage[datesep=/]{datetime2}
+- \usepackage{ltablex}
+- \usepackage{pifont}
+- \usepackage{float}
+- \usepackage{longtable}
+- \setlength{\headsep}{0.7in}
+linkcolor: black
+mainfont: Calibri
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_width: 4
+    latex_engine: xelatex
+    number_sections: yes
+  html_document: default
+  word_document: default
+---
+```{r libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+#load libraries
+#if packages listed below are not installed, use install.packages("packageName") before running library(packageName)# 
+
+library(knitr)
+library(kfigr)
+library(dplyr)
+library(stringr)
+library(readr)
+
+
+# install TeX program :  http://miktex.org/2.9/setup (Windows) ; http://tug.org/mactex/ (Mac)
+# re-install, update miktex - datetime2 package (called here) was released 3/24/15, all older versions do not have this package pre-loaded.
+# documentation for kfigr https://github.com/mkoohafkan/kfigr/blob/master/vignettes/introduction.Rmd
+
+```
+
+```{r titlePage, echo=FALSE}
+
+#Change for each document
+
+#Title
+title <- "TOS Design Optimization: Plant Diversity Sampling" #change AOS/TOS and Protocol Name
+
+#Authors
+firstAuthor <- "Dave Barnett"
+firstAuthorDate <- "03/03/2026"
+firstAuthorOrg <- "SCI"
+
+secondAuthor <- "Eric Sokole"
+secondAuthorDate <- "03/03/2026"  
+secondOrg <- "SCI"
+
+thirdAuthor <- "Courtney Meier"
+thirdAuthorDate <- "03/03/2026"
+thirdOrg <- "SCI"
+
+#repeat or delete as necessary 
+
+#Approvals
+approvalName <- "Kate Thibault"
+approvalOrg <- "SCI"
+approvalDate <- "mm/dd/yyyy"
+
+secondApprovalName <- "Approver 2"
+secondApprovalOrg <- "SYS"
+secondApprovalDate <- "mm/dd/yyyy"
+
+#repeat or delete as necessary 
+
+#Release
+releasedByName <- "Releaser"
+releasedByOrg <- "CM"
+releasedByDate <- "mm/dd/yyyy"
+
+```
+
+[//]: TEMPLATE SECTION 1 - DO NOT CHANGE!! #####################################
+[//]: These are document settings for NEON template, code will not print
+
+
+\DTMsetdatestyle{mmddyyyy}
+\thispagestyle{fancy}
+\sloppy
+\RaggedRight
+\pagestyle{fancy}
+\pagenumbering{gobble}
+\fancyhf{}
+\fancyheadoffset[L, R]{0.5in}
+\fancyfootoffset[L, R]{0.5in}
+\fancyhead[L]{\includegraphics[width=4cm]{Logo}
+\vspace{0.5cm}} 
+
+\fancyhead[R]{
+\footnotesize
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|p{5cm}|p{5cm}|p{1in}|}
+\hline
+\multicolumn{2}{|p{11cm}|}{\emph{Title:} `r title`} & \emph{Date:} `r firstAuthorDate` \\ \hline
+\emph{}    & \emph{Author:} `r firstAuthor`        & \emph{}  \\ \hline
+\end{tabular}
+\vspace{1cm}
+} 
+        
+[//]: check out http://www.tablesgenerator.com/latex_tables for help with code to generate tables
+
+\renewcommand{\headrulewidth}{0pt}
+\maketitle
+\thispagestyle{fancy}
+
+\begin{center}
+
+\vspace{0.3in}
+\huge \bfseries \uppercase {`r title` \\[0.4cm] }
+
+\end{center}
+
+\vspace{1in}
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{PREPARED BY} &\textbf{ORGANIZATION}  &\textbf{DATE} \\ \hline
+`r firstAuthor`      & `r firstAuthorOrg`         & `r firstAuthorDate` \\ \hline
+`r secondAuthor`     & `r secondOrg`         & `r secondAuthorDate` \\ \hline
+`r thirdAuthor`     & `r thirdOrg`         & `r thirdAuthorDate` \\ \hline
+\end{tabular}
+
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{APPROVALS}     &\textbf{ORGANIZATION}  &\textbf{APPROVAL DATE} \\ \hline
+`r approvalName`       & `r approvalOrg`       &  `r approvalDate`\\ \hline
+`r secondApprovalName` & `r secondApprovalOrg` &`r secondApprovalDate`  \\ \hline
+\end{tabular}
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{RELEASED BY} &\textbf{ORGANIZATION}  &\textbf{RELEASE DATE} \\ \hline
+`r releasedByName` & `r releasedByOrg`        &  `r releasedByDate` \\ \hline
+\end{tabular}
+
+\vspace{1.5in}
+
+\begin{center}
+See configuration management system for approval history.
+
+\bigskip
+
+
+
+\scriptsize{The National Ecological Observatory Network is a project solely funded by the National Science Foundation and managed under cooperative agreement by Battelle. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.}
+\end{center}
+
+
+\fancyfoot[L]{
+\footnotesize{\color{gray}Template\_NEON.DOC.004243 Rev J}
+} 
+
+\newpage
+
+\vspace{3in}
+
+
+\newpage
+\pagenumbering{roman}
+\fancyfoot[C]{\thepage}
+\fancyfoot[L]{
+\footnotesize{}
+} 
+
+\renewcommand\contentsname{\uppercase{Table of contents}}
+\tableofcontents
+\fancyfoot[C]{\thepage}
+\renewcommand\listtablename{\uppercase{list of tables and figures}}
+\let\oldnumberline\numberline
+\renewcommand{\numberline}{\tablename~\oldnumberline}
+\listoftables
+\fancyfoot[C]{\thepage}
+\renewcommand{\numberline}{\figurename~\oldnumberline}
+\renewcommand\listfigurename{}
+\addtocontents{lof}{\vskip -1.2cm}
+\listoffigures
+\fancyfoot[C]{\thepage}
+
+
+\newpage
+
+
+\pagenumbering{arabic} 
+\fancyfoot[C]{
+Page \thepage \hspace{1pt} of \pageref{LastPage}
+}
+<!---
+This is super secret text that will not appear in the pdf. 
+
+The \changeMe command turns text red to indicate that section should be modified for each document. Remove the \changeMe{} to make the text black
+--->
+
+\newcommand{\changeMe}[1]{\textcolor{red}{#1}}
+
+# BACKGROUND AND GOALS
+
+The National Ecological Observatory Network (NEON) generates data and samples to advance understanding of ecological processes and inform management of US ecosystems. Multiple tiers of requirements provide traceable links between this high-level NEON mission statement and the protocols that direct data collection. The Terrestrial Observation System (TOS) science design for plant diversity ([RD03]) and the resulting study design, protocol ([RD03]), and data product (Plant Presenece and Percent Cover, DP1.10058.001) are designed to enable status and trends in composition, abundance, and richness of plant species and function types at multiple scales. 
+
+## Description of sample design and available data
+
+NEON's plot-based sampling of plant species diversity satisfies the requirements that "NEON's measurement strategy will include biological invaders and diversity of key organismal groups" and "NEON measurements of plant diversity will include native and invasive plant species (Schimel et al. 2011)." Species are observed with the Carolina Vegetation Survey (Peet et al. 1998) multi-scale plot design that borrows from a sampling approach pioneered by Robert Whittaker (Shmida 1984, Stohlgren 1995). NEON samples with a 20 x 20m square plot with four 10m x 10m subplots containing nested 10m$^2$ and 1m$^2$ subplots (Figure 1). Specifically: 
+
+*  The identity of each species (or the lowest taxonomic rank possible) according to naming conventions maintained by the US Department of Agriculture, Natural Resources Conservation Service PLANTS database (USDA, NRCS 2016) is recorded in each subplot - eight 1m$^2$, eight 10m$^2$, four 100m$^2$. 
+*  Estimates of taxon-specific abundance is made with estimates of cover within the 1m$^2$ subplots. 
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{plotLayout}
+\caption{A diagram of the multiscale plot for observations of plant cover-abundance and occurrence data.  }
+\end{figure}
+
+At each of 47 terrestrial NEON sites, the NEON spatial sampling design for organisms and soil directs observations to (Thorpe et al. 2016):
+
+*  Tower Base Plots: Randomly placed plots near the NEON flux tower designed to calibrate sensor-based measures of atmosphere and soil  
+*  Distributed Base Plots: Plots to measure variability across larger landscapes according to a stratified-random design  
+
+The plant diversity protocol is implemented at three of the 20–30 Tower Base Plots. The majority of the plant species diversity sampling effort occurs at the Distributed Base Plots (Thorpe et al. 2016). Ecological literature (e.g., Stohlgren 2007), early input from the ecological community, and power analyses (Thompson et al. 2012, Barnett et al. 2018) resulted in an initial sample size of 20–30 Distributed Base plots at each site.
+
+The frequency and timing of sampling is guided by NEON requirements (Schimel et al. 2011). Implementing the protocol at each plot at least one time each year enables the quantification of annual rates of change. These sampling bouts occur during a one to two month period when the majority of species flower or possess other parts conducive to identification. This sampling window targets annual peaks in greenness as measured by MODIS, and incorporates input from local ecologists and NEON phenology observations (Meier et al. 2023). The few NEON sites characterized by distinct biomodal patterns in peak greenness populated disparate suites of apparent species are sampled twice annually.  For example, the Sonoran desert (represented by the NEON site at the Santa Rita Experimental Range) gets rain in late winter and a monsoonal moisture pulse late in the summer. Plant species adapted to the particular intersection of temperature and the timing and amount of precipitation grow and flower and can be identified only during one of the two distinct events (Ogle and Reynolds 2004).
+
+For the purpose of these analyses, data includes all available Distributed Base Plots from all 47 NEON sites (NEON 2025) downloaded directly from the application programming interface (API) and stacked with ‘neonUtilities::stackByTable()‘ function on 03/01/2026.  
+
+
+## Analytical Goals
+
+Statistically rigorous analyses are needed to assess the capacity of NEON data to address Observatory goals and to guide iterative sampling design optimization efforts. Initial spatial and temporal sampling designs for the NEON Terrestrial Observation System (TOS) and Aquatic Observation System (AOS) were developed in collaboration with Technical Working Groups (TWGs) comprised of community experts, and were captured in Science Design documents (RD[01]). The initial designs relied on analysis of published datasets (where relevant), analysis of NEON prototype data collection efforts, and subject matter expertise.  
+
+As the NEON Observatory matures, it is critical for initial design assumptions to be tested with multiple years of data collected from NEON sites. Analyses must: 
+
+*  Describe where the data support reduction of sampling effort without compromising NEON's ability to meet design requirements (e.g., target sites for reduction in sampling effort, spatial scales where replication is not necessary, etc.). 
+*  Evaluate effects of design modifications on uncertainty and ability to detect changes for key response variables (e.g., effects of reduced spatial and/or temporal sampling effort). 
+
+Analysis and evaluation of the data provides a feedback loop that enables assessment of the Designs relative to Observatory goals. Moreover, results of these analyses will allow the NEON to effectively prioritize sampling costs in the face of uncertain future funding levels.  
+
+Specification of analyses suitable for evaluating the efficacy of the NEON sampling designs required development of specific questions. Power analyses and sampling simulations were then used to determine the degree to which design modifications affected the ability of the data to address those questions. Questions and analytical approaches were developed in consultation with NEON Technical Working Groups comprised of subject matter experts selected from the ecological community. 
+
+The two primary and actionable questions of a 2018 effort for these data were:
+
+\begin{enumerate}
+   \item Where is the variability in the data? Specifically, what proportion of the variance at each site exists at the year, bout, plot, and subplot scales?  Understanding the components of variance provides a critical component of the actionable directions for modifying sampling size, subplot sampling intensity, and temporal sampling frequency. 
+   
+   \item Is it possible to detect meaningful interannual variation in key response variables? Understanding the power to detect change between years provides a direct indication of the sample sizes required to detect meaningful ecological change. 
+\end{enumerate}
+
+The variance components analysis supported the reduction in the number of the number nested 10m$^2$ and 1m$^2$ subplots within each plot from eight to six. Additionally, the 10m$^2$ and 100m$^2$ subplots at which species presence are recorded were reduced to every other year sampling. The 1m$^2$ subplots at each plot continue to be sampled annually.
+
+The power analysis reduced the total number of plots sampled at a small number of sites. Only sites with three or more years of data were considered. An initial goal was to evaluate trend detection, but it was decided insufficient years of data had been collected for that analysis.
+
+With many more years of data available across all NEON terrestrial sites in 2026 (Appendix A), this effort revisits the question of detectability of interannual change in plant community composition and abundance. Specifically, we ask: 
+
+\begin{enumerate}
+\item What level of spatial replication (number of plots) is required to reliably detect a specified relative change in plant species cover at a site?
+\item What level of spatial replication is required for reliable estimation of multi-year directional trends in species cover?
+\end{enumerate}
+
+Together, these analyses provide complementary bounds on the minimum sampling effort required to detect meaningful ecological change at short (interannual) and long (multi-year trend) temporal horizons.
+
+
+# RELATED DOCUMENTS AND ACRONYMS
+
+##  Reference Documents
+
+```{r Reference Document list, echo=FALSE}
+
+# Documents will be assigned an RD[##] in the order they are listed
+
+RDlist <- as.data.frame(rbind(
+  "name1" = c("name"="NEON Observatory Design", "doc"= "NEON.DOC.000001"),
+  "name2" = c("name"="NEON Level 1, Level 2, and Level 3 Data Products Catalog", "doc"= "NEON.DOC.002652"),
+  "name3" = c("name"="TOS Science Design for Plant Diversity", "doc"="NEON.DOC.000912"),
+  "name4" = c("name"="TOS Protocol and Procedure: Plant Diversity Sampling", "doc"="NEON.DOC.014042")
+  # any additional documents...
+))
+
+RDlist <- cbind(RDlist,
+  "ref"= paste("RD[",
+              formatC(1:nrow(RDlist), width=2, flag="0"),
+              "]", 
+              sep="")
+)
+
+```
+\begin{tabular}{|m{1cm}|m{3cm}|m{11cm}|}
+\hline
+`r paste(RDlist$ref, "&",
+        RDlist$doc, "&",
+        RDlist$name, "\\\\ ","\\hline", sep="", collapse=" ")`
+\end{tabular}
+
+
+##  Acronyms
+<!---
+Fill in the Acronym before the "&"" and the definition after the "&"
+--->
+\begin{tabular}{|m{3cm}|m{12.5cm}|}
+\hline
+\bfseries{Acronym}&  \bfseries{Definition}  \\ \hline
+  NEON  &  National Ecological Observatory Network \\ \hline
+  TOS   &  Terrestrial Observation System \\ \hline
+ TWG   &  Technical Working Group \\ \hline
+ NLCD  & National Land Cover Database \\ \hline
+ GJAM  & Generalized Joint Attribute Model \\ \hline
+ CA    & Censored Abundance (GJAM likelihood for cover data) \\ \hline
+ MCMC  & Markov Chain Monte Carlo \\ \hline
+\end{tabular}
+
+# METHODS
+
+We evaluated the capacity of NEON’s terrestrial plant sampling design to detect ecological change in species- and community-level response variables using a hierarchical Bayesian modeling framework combined with simulation-based power and sensitivity analyses. The assessment comprises two complementary analyses: 
+\begin{enumerate}
+   \item We conducted a perturbation-based power analysis to quantify the spatial replication (number of randomly placed plots) required to detect a specified magnitude of interannual change in species cover, evaluated through a paired counterfactual design that controls for natural year-to-year variability. 
+
+  \item We evaluated the spatial replication required for reliable estimation of multi-year directional trends, including the stability of trend estimates across sample sizes and the detectability of imposed trends of known magnitude. 
+\end{enumerate}
+
+Together, these analyses address the two primary temporal scales at which change detection is relevant to NEON’s mission: abrupt interannual shifts and gradual directional trends.
+
+
+## Data and preprocessing
+
+The observation unit for modeling is a species-specific cover value at the plot-year level. Within each plot-year, the six (or eight prior to 2019) 1m$^2$ subplot observations are averaged to produce a single cover value per species per plot per year. For example, at a site where 30 plots are sampled annually for 8 years, a species recorded on all plots would contribute 240 plot-year observations to the model. The full model input for a site is the matrix of all species × all plot-years, with cover values as entries. 
+
+Prior to model fitting, species occurring in fewer than three plots across the entire site record are aggregated into a composite "OTHER" category. This filter removes species for which spatial replication is insufficient to estimate covariance structure, while retaining them in the modeled community so that their aggregate contribution to total cover is represented (Clark et al. 2017). Species with all-zero cover or zero variance after aggregation are removed. The "OTHER" category participates in model fitting but is excluded from power and trend analyses, which focus on individually identifiable species.
+
+Separately, a cover floor of 3\% mean raw field cover is applied when evaluating power and trend stability. Species below this threshold are excluded from the power analysis because a 20\% relative change at 3\% cover corresponds to 0.6 percentage points---below the 1\% recording resolution of NEON's field protocol. This cover floor is computed from the raw field observations (mean of \texttt{percent cover} per species across all plot-years at the site) and is independent of the GJAM model predictions which undergo compositional normalization that compresses cover values.
+
+
+## Joint species distribution model
+
+Both analyses share a common modeling framework. Plant species cover was modeled with generalized joint attribute models (GJAM; Clark et al. 2017), a multivariate hierarchical Bayesian framework that jointly represents all species at a site while accounting for shared responses to environmental covariates and residual covariance among species. A single GJAM model is fit per site using all available plot-years. Both the perturbation-based and trend analyses draw on the posterior output of this shared fit. For plot $p$ in year $t$, the vector of observed percent cover values for all $S$ species is modeled as:
+
+$$
+\mathbf{y}_{p,t} \sim \text{CA}(\boldsymbol{\mu}_{p,t}, \boldsymbol{\Sigma})
+$$
+
+$$
+\boldsymbol{\mu}_{p,t} = \mathbf{X}_{p,t}\mathbf{B}
+$$
+
+where $\mathbf{y}_{p,t}$ is the $S$-vector of observed percent cover, $\boldsymbol{\mu}_{p,t}$ is the latent mean cover vector, $\mathbf{X}_{p,t}$ is the design matrix of covariates, $\mathbf{B}$ is the $K \times S$ matrix of species-specific regression coefficients (equivalent to the transpose of the coefficient matrix in Clark et al. 2017), and $\boldsymbol{\Sigma}$ represents residual covariance among species not explained by the covariates, where $K$ is the number of covariates.
+
+The censored-abundance (CA) likelihood represents observed cover as a censored realization of an underlying multivariate normal latent variable, allowing exact zeros as well as continuous positive values.
+
+Two model specifications were used depending on land cover heterogeneity at each site: $\mathbf{Y} \sim \text{year} + \text{nlcdClass}$ at sites with multiple National Land Cover Database (NLCD) classes represented among sample plots, and $\mathbf{Y} \sim \text{year}$ at sites with a single class or where the multi-class specification failed to converge. Year was treated as a categorical factor. The MCMC sampler was run for 5,000 iterations; 2,500 iterations were discarded as burn-in, yielding 2,500 retained posterior draws. For downstream posterior prediction and sensitivity analyses, we used $G = 1{,}000$ posterior draws sampled from the retained MCMC output for computational efficiency.
+
+
+### Posterior prediction and dimension reduction
+
+Joint modeling of plant communities at NEON sites frequently involves hundreds of species observed across tens of plots(Appendix here to numbers of sp), producing covariance matrices that are high-dimensional relative to the available sample size. To illustrate, consider a southeastern forest site with 400 plant species observed across 30 plots per year: estimating the $400 \times 400$ residual covariance matrix $\boldsymbol{\Sigma}$ from 300 plot-year observations is not feasible using standard approaches.
+
+GJAM addresses this challenge through a Bayesian dimension reduction framework (Taylor-Rodriguez et al. 2017; Clark et al. 2017). Rather than estimating $\boldsymbol{\Sigma}$ directly, the model represents the $S$-dimensional species response through a lower-dimensional factor structure. Species are assigned to $N_c$ clusters via a truncated Dirichlet process representation, and within each cluster, an $r$-dimensional factor loading matrix $\mathbf{Z}$ captures shared covariance. The implied covariance is:
+
+$$
+\boldsymbol{\Sigma} = \mathbf{A}\mathbf{A}' + \sigma^2_\varepsilon \mathbf{I}
+$$
+
+where $\mathbf{A} = \mathbf{Q}(\mathbf{k})\mathbf{Z}$ is the $S \times r$ loading matrix that maps the reduced factor structure back to the full species space via cluster assignments $\mathbf{k}$, and $\sigma^2_\varepsilon$ is a scalar residual variance. This factorization reduces the effective number of covariance parameters from $S(S+1)/2$ to $(N_c \times r) + 1$, enabling stable estimation even when $S$ greatly exceeds the number of observations $n$.
+
+GJAM invokes dimension reduction when the number of species is large relative to the number of observations, which was the case for all NEON sites analyzed here (Taylor-Rodriguez et al. 2017). This condition was met at all 46 NEON sites, where species counts ranged from 39 to 406 while plot-year observations ranged from approximately 100 to 400. We therefore set reduction explicitly with a truncation level of $N_c = 20$ clusters and $r = 5$ factors across all sites, ensuring consistent parameterization and comparability of posterior predictions across the Observatory. Posterior predictive draws were reconstructed from the stored MCMC chains for $\mathbf{B}$, $\mathbf{k}$, $\mathbf{Z}$, and $\sigma^2_\varepsilon$ using the reduced-rank generative model:
+
+$$
+\mathbf{y}_i^{(g)} = \mathbf{x}_i \mathbf{B}^{(g)} + \mathbf{w}_i^{(g)} {\mathbf{A}^{(g)}}' + \boldsymbol{\varepsilon}_i^{(g)}
+$$
+
+where $\mathbf{x}_i \mathbf{B}^{(g)} = \boldsymbol{\mu}_i^{(g)}$ is the latent mean response defined above, $\mathbf{B}^{(g)}$ is the $K \times S$ matrix of species-specific regression coefficients for posterior draw $g$, $\mathbf{A}^{(g)}$ is the $S \times r$ loading matrix reconstructed from cluster assignments $\mathbf{k}^{(g)}$ and factor loadings $\mathbf{Z}^{(g)}$ at draw $g$, $\mathbf{w}_i^{(g)}$ is an $r$-dimensional latent factor score with $\mathbf{w}_i^{(g)} \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_r)$, and $\boldsymbol{\varepsilon}_i^{(g)}$ is species-level residual error with $\boldsymbol{\varepsilon}_i^{(g)} \sim \mathcal{N}(\mathbf{0}, \sigma^{2(g)}_\varepsilon \mathbf{I})$. Superscript $(g)$ indexes the posterior draw used for prediction ($g = 1, \ldots, G$, with $G = 1{,}000$ in the sensitivity analyses). For each draw, the parameters $\mathbf{B}^{(g)}$, $\mathbf{A}^{(g)}$, and $\sigma^{2(g)}_\varepsilon$ are fixed, while $\mathbf{w}_i^{(g)}$ and $\boldsymbol{\varepsilon}_i^{(g)}$ are drawn independently, yielding posterior predictive realizations that preserve the covariance structure implied by the reduced-rank model without explicitly forming the full $S \times S$ covariance matrix.
+
+The analysis propagates key sources of uncertainty through the posterior predictive distribution. Parameter uncertainty is captured through variation across MCMC draws, while residual variability—representing ecological and measurement variation not explained by covariates—is captured through the stochastic components $\mathbf{w}$ and $\boldsymbol{\varepsilon}$. Observation uncertainty (field measurement error) is not modeled explicitly but is implicitly absorbed into the residual variance estimates.
+
+## Analytical framework
+
+Both analyses use a common modeling and prediction framework to evaluate the detectability of ecological change. Posterior predictive draws from a single site-level model provide a representation of expected species abundance under observed environmental and spatial variability. These predictions are then combined with controlled perturbations and plot-level subsampling to quantify how sampling intensity influences inference.
+
+The two analyses differ only in the temporal structure of the signal being evaluated. The counterfactual analysis focuses on discrete changes between paired states, while the trend analysis evaluates directional change accumulated over multiple years. In both cases, inference is based on the behavior of posterior predictive summaries under repeated subsampling of plots, allowing direct comparison of how sampling design affects the ability to detect and estimate change.
+
+
+## Year-to-year change detection (counterfactual analysis)
+
+The objective of the counterfactual analysis is to evaluate the extent to which changes in species abundance can be detected given the spatial variability observed within NEON sites. Because plant communities are spatially heterogeneous, the detectability of change depends not only on the magnitude of the signal, but also on the number and configuration of plots used to estimate site-level means.
+
+To address this, we used posterior predictive draws from a single site-level model to generate paired baseline and perturbed realizations of species cover. The perturbation represents a controlled, biologically meaningful change applied to the latent mean structure, allowing direct comparison of predicted site-level responses under identical underlying variability.
+
+For each site, detection was evaluated as a function of the number of plots sampled per year ($K$). Subsampling plots introduces variability analogous to field sampling, allowing the analysis to quantify how sampling intensity influences the probability of detecting a specified change. The result is a set of detection curves that describe the relationship between sampling effort and the probability of detecting a change of magnitude $\delta$.
+
+This framework isolates the role of spatial sampling in determining detectability. Because the baseline and perturbed predictions are derived from the same posterior draws, differences between them reflect only the imposed change and the variability introduced by subsampling, rather than differences in model fit or parameter uncertainty.
+
+This analysis was motivated by earlier approaches that evaluate change between consecutive years, but extends that framework by removing the confounding influence of interannual ecological variability. Rather than comparing observations from different years, both baseline and perturbed predictions are generated from the same underlying data and posterior parameter draws, with independent realizations of observation-level variability ($\mathbf{w}$ and $\boldsymbol{\varepsilon}$). This counterfactual design isolates statistical detectability from ecological variability among years, providing a controlled evaluation of monitoring performance under realistic covariance structure.
+
+Let $\mu_{s,p}^{(g)}$ denote the posterior predictive cover for species $s$ at plot $p$ for MCMC draw $g$.
+
+The perturbation was applied directly to the posterior predictive draws as a per-species additive shift proportional to each species' mean raw field cover:
+
+$$
+\mu_{s,p}^{\text{pert},(g)} = \mu_{s,p}^{(g)} + \delta \cdot \bar{c}_s
+$$
+
+where $\mu_{s,p}^{(g)}$ is the posterior predictive cover for species $s$ at plot $p$ for draw $g$, $\mu_{s,p}^{\text{pert},(g)}$ is the corresponding perturbed value, $\bar{c}_s$ is the mean percent cover of species $s$ computed from raw field observations across all plot-years at the site, and $\delta$ is the relative effect size. A species at 10\% mean cover with $\delta = 0.20$ receives a +2 percentage point perturbation; a species at 60\% mean cover receives +12 percentage points. This per-species scaling ensures every species faces the same proportional challenge regardless of baseline cover level. We tested effect sizes of $\delta \in \{0.15, 0.20, 0.25, 0.30\}$, corresponding to 15--30\% relative changes in cover.
+
+For each site and year, the baseline and perturbed prediction sets were subsampled to represent alternative levels of spatial replication. All plots sampled in a given year were eligible for subsampling; no requirement was imposed that plots be sampled in consecutive years, as the paired counterfactual design generates both prediction sets from the same year's data. Subsamples consisted of $K$ plots drawn without replacement, with $K \in \{30, 25, 20, 15, 10, 8, 6, 5\}$, and each subsampling was repeated 50 times.
+
+For each Monte Carlo replicate, the site-level mean cover for species $s$ was computed for both the baseline and perturbed prediction sets by averaging across the $K$ sampled plots within each posterior draw $g$:
+
+$$
+\bar{\mu}_{s,K}^{(g)} = \frac{1}{K}\sum_{p=1}^{K} \mu_{s,p}^{(g)}, 
+\quad
+\bar{\mu}_{s,K}^{\text{pert},(g)} = \frac{1}{K}\sum_{p=1}^{K} \mu_{s,p}^{\text{pert},(g)}
+$$
+
+where $\mu_{s,p}^{(g)}$ and $\mu_{s,p}^{\text{pert},(g)}$ denote the baseline and perturbed posterior predictive cover values, respectively.
+
+Detection was evaluated using a per-species absolute difference criterion. For each species $s$, detection probability was defined as:
+
+$$
+P\left(\left|\bar{\mu}_{s,K}^{\text{pert},(g)} - \bar{\mu}_{s,K}^{\text{base},(g)}\right| \ge \tau_s\right) \ge 0.80
+$$
+
+where $\bar{\mu}_{s,K}^{\text{base},(g)}$ and $\bar{\mu}_{s,K}^{\text{pert},(g)}$ are the site-level mean cover values computed from the baseline and perturbed prediction sets, respectively, for posterior draw $g$, and $\tau_s$ is the species-specific detection threshold. The probability is computed as the fraction of posterior draws $g$ for which the absolute difference exceeds $\tau_s$. The ratio of imposed effect to detection threshold is constant across species (2:1 at $\delta = 0.20$), providing equivalent statistical difficulty regardless of cover level. This ensures that detectability comparisons are not driven by differences in species abundance scale.
+
+A species was classified as detectable at sample size $K$ and effect $\delta$ when the above criterion was satisfied in at least 80\% of the 50 Monte Carlo replicates (power $\ge$ 0.80). The community-level metric reports the percentage of species (above the 3\% cover floor) that are individually detectable at each $K$.
+
+
+## Multi-year trend analysis
+
+### Objective and conceptual framing
+
+Where the counterfactual analysis evaluates the detectability of discrete changes, the trend analysis addresses a complementary question: whether directional change in species abundance can be reliably estimated over time. In this context, the focus shifts from detecting a difference between two states to estimating the rate of change across multiple years.
+
+As with the counterfactual analysis, inference is based on posterior predictive draws from a single site-level model. For each species, predicted cover values are generated for all plot–year combinations, preserving the spatial and temporal structure of the observed data. These predictions are then used to estimate annual site-level means under varying levels of spatial replication.
+
+To evaluate the influence of sampling intensity, plots are subsampled independently within each year, and site-level mean cover is computed for each posterior draw. A linear trend is then estimated across years for each species, yielding a posterior distribution of slope parameters that reflects both model uncertainty and the variability introduced by spatial subsampling.
+
+Two complementary properties of the estimated trend are evaluated. First, detection assesses whether the magnitude of the estimated slope exceeds a specified threshold, analogous to the threshold-based detection used in the counterfactual analysis. Second, stability evaluates the sensitivity of the estimated slope to the selection of plots, quantified as the coefficient of variation of slope estimates across repeated subsamples at each sample size.
+
+Together, these metrics describe both the ability to detect directional change and the reliability of the estimated rate of change. As in the counterfactual analysis, the objective is not to optimize model fit, but to quantify how spatial sampling constrains inference about ecological change.
+
+Many ecological changes of interest to NEON manifest as gradual directional trends that accumulate over multiple years. A site may experience a slow decline in native grass cover or a progressive increase in woody encroachment that is not detectable in any single year-to-year comparison but becomes apparent over a longer observation window. This analysis addresses the question of what level of spatial replication is required for reliable estimation and detection of such trends.
+
+This question was identified as a priority during the 2018 NEON design optimization effort (Barnett et al. 2018) but could not be addressed at that time due to limited temporal replication. With 8--12 years of data now available at most NEON sites, the question is now tractable.
+
+
+### Moving-window framework
+
+Trend detection was evaluated using a moving-window approach (Urquhart et al. 1998). Rather than fitting a single trend line through the entire time series, we applied overlapping windows of fixed width $W$ that slide across the available years. This approach reflects realistic monitoring practice: an analyst examining NEON data in any given year would assess the most recent $W$ years to determine whether a trend is present. It also accommodates the possibility that trend strength varies across the observation period.
+
+For each site, we evaluated window widths of $W \in \{5, 10\}$ years. Within each window, a trend was quantified as the ordinary least-squares slope of species cover against year, computed from posterior predictive site-year means derived from plot-level predictions. This yields a posterior distribution of slope estimates for each species, window position, and sample size.
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- Conceptual figure: moving window illustration showing overlapping 5-year and 10-year windows sliding across a 10-year time series -->
+
+
+### Observed trend detection
+
+The observed trend detectability analysis evaluates whether trends already present in the posterior predictions are detectable as sample size changes. For each species, window position, posterior draw, and sample size $K$, the site-level mean cover was computed by averaging across the $K$ sampled plots within each year:
+
+$$
+\bar{\mu}_{s,t,K}^{(g)} = \frac{1}{K} \sum_{p=1}^{K} \mu_{s,p,t}^{(g)}
+$$
+
+where $\mu_{s,p,t}^{(g)}$ is the posterior predictive cover for species $s$ at plot $p$ in year $t$ for MCMC draw $g$. A temporal trend was then estimated for each species and posterior draw as the ordinary least-squares slope of $\bar{\mu}_{s,t,K}^{(g)}$ against centered year:
+
+$$
+\gamma_{s,K}^{(g)} =
+\frac{\sum_t (t - \bar{t}) \bar{\mu}_{s,t,K}^{(g)}}{\sum_t (t - \bar{t})^2}
+$$
+
+Detection was defined as the posterior probability that the absolute slope exceeded a biologically meaningful threshold:
+
+$$
+P\left(|\gamma_{s,K}^{(g)}| \ge \frac{\delta}{T}\right) \ge 0.80
+$$
+
+where $\gamma_{s,K}^{(g)}$ is the estimated trend slope for species $s$ at sample size $K$, $\delta = 0.20$ corresponds to a cumulative 20\% change over the window, and $T = t_{\max} - t_{\min}$ is the duration of the observation window.
+
+Plots were subsampled independently within each year, rather than requiring consistent plot identity across time. This accommodates variation in sampling effort among years (including reduced sampling in 2020) and reflects realistic monitoring conditions.
+
+The evaluated sample sizes ($K$) span the range of sampling effort observed across sites, with a maximum target of $K = 30$. At sites with fewer available plots, the maximum evaluated $K$ corresponds to the number of plots available. Thus, values reported at $K = 30$ represent the highest achievable sampling intensity for each site.
+
+Observed trend detectability answers the question: given the trends already present at a site, how many plots would be needed to detect them with high probability?
+
+This formulation evaluates detectability under the observed temporal structure of the data. A complementary imposed trend analysis, described below, evaluates detectability under a standardized change scenario.
+
+### Imposed trend detection
+
+The imposed trend detectability analysis evaluates the ability to detect a trend of known magnitude that may not be present in the observed data. This provides a prospective analysis analogous to the counterfactual change detection analysis, but for gradual directional trends rather than discrete changes at a single time point. For each window, an additive linear trend was imposed on the posterior predictive means before estimating slopes:
+
+$$
+\mu_{s,p,t}^{\text{trend},(g)} =
+\mu_{s,p,t}^{(g)} + \frac{\delta}{T}(t - t_0)
+$$
+
+where $\mu_{s,p,t}^{(g)}$ is the original posterior predictive cover, $\mu_{s,p,t}^{\text{trend},(g)}$ is the prediction after imposing the trend, $t_0$ is the first year of the window, $\delta$ is the imposed cumulative change, and $T$ is the calendar time span of the window. Slopes $\gamma_{s,K}^{(g)}$ were then estimated from the trend-modified predictions using the same centered-year regression described above. Detection was assessed using the same posterior probability criterion as in the observed trend analysis.
+
+Imposed trend detectability answers the question: if a trend of the specified magnitude were to emerge at a site, how many plots would be required to detect it?
+
+
+### Slope estimation stability
+
+The detection-based analyses above evaluate whether an estimated slope exceeds a fixed threshold. A complementary question is whether the slope estimate itself is stable—that is, whether it would yield a similar value if a different set of plots were selected. This is directly relevant to monitoring design: a slope estimate that varies substantially depending on which plots are sampled provides a weak basis for inference, regardless of whether it exceeds a detection threshold.
+
+To evaluate this, we computed the coefficient of variation (CV) of the slope estimate across Monte Carlo replicates at each sample size $K$. For each species $s$, window position, and sample size, each of the $R = 50$ Monte Carlo replicates yields a mean slope (averaged across posterior draws):
+
+$$
+\bar{\gamma}_{s,K,m} = \frac{1}{G} \sum_{g=1}^{G} \gamma_{s,K,m}^{(g)}
+$$
+
+where $\gamma_{s,K,m}^{(g)}$ is the slope estimate for species $s$ at sample size $K$ in Monte Carlo replicate $m$ for posterior draw $g$, and $G$ is the number of posterior draws.
+
+The coefficient of variation across replicates is then:
+
+$$
+\text{CV}_s(K) = 
+\frac{\text{SD}\left(\bar{\gamma}_{s,K,1}, \ldots, \bar{\gamma}_{s,K,R}\right)}
+{\left|\text{mean}\left(\bar{\gamma}_{s,K,1}, \ldots, \bar{\gamma}_{s,K,R}\right)\right|}
+$$
+
+At low $K$, slope estimates vary widely depending on which plots are selected (high CV); as $K$ increases, estimates converge (low CV). A CV below 0.50 indicates that the standard deviation of the slope estimate is less than half its magnitude, such that variation in plot selection does not qualitatively change the inferred direction and strength of the trend.
+
+This stability analysis provides a perspective complementary to the detection-based analyses. Adding spatially heterogeneous plots to annual site means can increase year-to-year variability, making threshold-based detection more difficult at higher $K$—an effect that reflects real ecological heterogeneity but complicates interpretation of detection curves. In contrast, the CV metric evaluates the precision of the slope estimate itself and decreases monotonically with $K$ at nearly all sites.
+
+For each species and site, we defined $K_{\text{CV50}}$ as the smallest sample size at which $\text{CV}_s(K) \le 0.50$, representing the point at which slope estimates become stable with respect to plot selection.
+
+
+### Definition of $N^*$ for trend detection
+
+For each site, species, and window width, we defined $N^*$ as the smallest number of plots $K$ for which the trend detection criterion was met. As with the counterfactual change detection analysis, $N^*$ values were computed separately for each species and then summarized at the community level.
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- Example trend detection power curves: slope detectability vs K for selected species at an example site -->
+
+
+## Scope and relationship between analyses
+
+The counterfactual year-to-year change detection and trend analyses address ecological change at different temporal scales. The counterfactual year-to-year change detection analysis quantifies the spatial replication required to detect a specified relative change at a single time point, providing guidance relevant to monitoring for abrupt ecological shifts. The trend analysis evaluates the spatial replication required for reliable trend estimation over multi-year windows, providing guidance relevant to tracking gradual directional changes.
+
+These analyses are complementary. The slope stability analysis from the trend framework directly parallels the counterfactual change detection curves: both ask how the quality of inference improves with additional plots. Where both analyses converge on similar sample size requirements, the recommendation is strengthened.
+
+
+# RESULTS
+
+We present results from site-level analyses across NEON, drawing on both the counterfactual change detection framework and the multi-year trend analysis. Together, these analyses evaluate how the ability to detect ecological change and estimate directional trends depends on spatial replication (number of plots) under realistic levels of spatial and temporal variability.
+
+The analyses leverage 8–12 years of NEON vegetation data per site, representing a substantial increase in temporal replication relative to the 2018 design optimization effort. This expanded record enables direct evaluation of both year-to-year change detection and multi-year trend estimation within a unified modeling framework.
+
+We begin with a summary of site-level data characteristics, including the number of years of observation and the number of species retained after applying the cover filter. We then present detailed results for a small number of representative sites to illustrate the behavior of each analysis, followed by summary tables that synthesize results across all completed sites.
+
+
+### Site characteristics
+
+Across completed sites, the number of years of observation ranged from 2013 to 2024, with most sites having at least eight years of data. The number of species included in the GJAM model ranged from 39 to 406 per site, reflecting substantial variation in species richness across the Observatory. After applying the 3% mean cover threshold, the number of species retained for analysis was reduced to 4 to 122 per site.
+
+All species were included in model fitting and posterior prediction to preserve community structure. Detection and stability metrics, however, were restricted to species with mean raw cover ≥ 3%. Below this threshold, a 20% relative change falls within the resolution of the field protocol and cannot be reliably distinguished from measurement noise. For example, a species with 2% mean cover would require detection of a 0.4 percentage point change under a 20% perturbation, which is smaller than the effective resolution of visual percent cover estimates in the field. This filtering ensures that inference is focused on the portion of the community where meaningful change can be resolved, and the same filtered species set was used consistently across both the change detection and trend analyses.
+
+For each site, we report three species counts: (1) the total number of species observed in the raw dataset, (2) the number of species included in the model, and (3) the number of species retained for inference after applying the 3% mean cover threshold (Table 1).
+
+```{r site-summary-table, echo=FALSE, message=FALSE}
+
+site_summary <- read_csv("siteSummaryIntroDiscssion.csv")
+
+kable(
+  site_summary,
+  caption = "Summary of site characteristics, including years of observation and species counts for observed, modeled, and inference subsets.",
+  booktabs = TRUE,
+  align = "l"
+)
+
+```
+
+## Year-to-year change detection (counterfactual analysis)
+
+### Example sites
+
+We illustrate the behavior of the counterfactual change detection analysis using three representative sites: ABBY, GRSM, and BONA (Figure 2), spanning a range of community composition and spatial heterogeneity.
+
+At all three sites, detection increased with sample size at the focal effect size of $\delta = 0.20$, but the rate of increase differed among sites. At ABBY, detection rose steadily with increasing $K$, approaching high detection probabilities at larger sample sizes. GRSM required a greater number of plots to achieve comparable levels of detection, reflecting increased spatial variability. At BONA, detection increased with $K$ but did not reach the 80% threshold within the evaluated range, indicating that the imposed change could not be reliably detected even at maximum sampling effort.
+
+At smaller effect sizes ($\delta = 0.15$), detection remained low across all sample sizes, indicating that changes below 20% are not reliably detectable under observed spatial variability. At larger effect sizes ($\delta \ge 0.25$), detection increased rapidly and approached saturation at relatively small sample sizes, particularly at ABBY.
+
+```{r fig-power-curves, echo=FALSE, results='asis'}
+cat("
+\\begin{figure}[!htbp]
+\\centering
+\\includegraphics[width=0.82\\textwidth]{fig_power_curves_ABBY_GRSM_BONA.png}
+\\caption{Counterfactual change detection across three example sites. Curves show the percentage of species with detection probability at least 0.80 as a function of the number of plots sampled per year ($K$), for imposed relative changes of 15--30\\%.}
+\\label{fig:power_curves}
+\\end{figure}
+")
+```
+
+### Summary across sites
+
+Across sites, the number of plots required to achieve the detection criterion ($K^*$) varied substantially (Table 2). At $\delta = 0.20$, most sites reached the 80\% detection threshold between approximately $K = 20$ and $K = 30$, although several sites did not reach the threshold within the evaluated range.
+
+Detection increased monotonically with sample size at nearly all sites, but the rate of increase differed. Sites with relatively homogeneous spatial structure showed rapid gains in detection with increasing $K$, whereas more heterogeneous communities exhibited slower, more gradual increases.
+
+Detection at the maximum evaluated sample size ($K = 30$) also varied among sites, indicating that for some communities the 80\% detection threshold was not achievable within the range of sampling effort considered. These differences reflect variation in community composition and spatial heterogeneity rather than differences in model behavior.
+
+Species-level detection requirements were substantially lower than the community-level thresholds reported here, indicating that many species are individually detectable at small sample sizes. However, the community-level metric requires that most species exceed the detection criterion, resulting in larger sample size requirements for reliable inference at the community scale.
+
+```{r site-summary-table tier0, echo=FALSE, message=FALSE}
+
+tier0_summary_tbl <- read_csv("tier0_summary_pub.csv")
+
+kable(
+  tier0_summary_tbl,
+  caption = "Summary of counterfactual change detection across sites. K* is the smallest evaluated number of plots at which at least 80% of species exceeded the detection criterion for a 20% relative change. Detection at K = 30 reports the percentage of species detectable at the maximum evaluated sample size.",
+  booktabs = TRUE,
+  align = "l"
+)
+
+```
+
+
+## Multi-year trend detection
+
+### Example sites
+
+The detection curves shown here are based on imposed trend detectability, providing a standardized comparison of sensitivity across sites.
+
+Patterns of trend detectability broadly paralleled those observed for year-to-year change detection, but with important differences arising from the temporal structure of the signal (Figure 3).
+
+At ABBY, trend detection increased steadily with sample size, and both detection and stability were achieved at relatively small $K$. GRSM required larger sample sizes to achieve comparable levels of detection, reflecting greater variability in annual site means. At BONA, detection increased with $K$ but did not consistently reach the detection threshold, while slope estimates remained sensitive to plot selection even at larger sample sizes. Together, these sites illustrate that strong signals do not necessarily translate to stable inference.
+
+```{r fig-trend-detection, echo=FALSE, results='asis'}
+cat("
+\\begin{figure}[!htbp]
+\\centering
+\\includegraphics[width=0.82\\textwidth]{fig_trend_detection_ABBY_GRSM_BONA.png}
+\\caption{Trend detection across three example sites. Curves show the fraction of species with detection probability at least 0.80 as a function of the number of plots sampled per year ($K$), for imposed cumulative trends of different magnitudes.}
+\\label{fig:trend_detection}
+\\end{figure}
+")
+
+```
+
+Slope stability showed a consistent and interpretable response to increasing sample size (Figure 4). Across all three sites, the coefficient of variation of slope estimates declined with increasing $K$, indicating improved precision with additional spatial replication. However, the rate of improvement differed among sites. ABBY achieved low CV values at relatively small $K$, whereas GRSM and BONA required larger sample sizes to achieve comparable levels of stability.
+
+```{r fig-trend-stability, echo=FALSE, results='asis'}
+cat("
+\\begin{figure}[!htbp]
+\\centering
+\\includegraphics[width=0.82\\textwidth]{fig_trend_stability_CV_ABBY_GRSM_BONA.png}
+\\caption{Slope estimation stability across three example sites. Curves show the median coefficient of variation (CV) of species-level slope estimates as a function of the number of plots sampled per year ($K$). Lower CV indicates greater stability with respect to plot selection. Horizontal lines indicate reference thresholds at CV = 0.50 (used to define stable estimation) and CV = 0.25.}
+\\label{fig:trend_stability}
+\\end{figure}
+")
+```
+
+### Detection and stability
+
+Detection and stability provided complementary perspectives on trend inference. Detection evaluates whether the estimated slope exceeds a specified threshold, while stability evaluates whether the slope estimate is consistent across repeated subsamples of plots.
+
+Across sites, detection thresholds were often reached at smaller sample sizes than those required for stable estimation, but stability required larger values of $K$. In many cases, slope estimates remained sensitive to plot selection even after detection thresholds were met, indicating that detectability does not imply reliable estimation of trend magnitude.
+
+The coefficient of variation of slope estimates decreased monotonically with increasing $K$ at nearly all sites, indicating that additional plots consistently improve the precision of trend estimates. In contrast, detection-based metrics can be influenced by spatial heterogeneity in ways that produce non-monotonic or difficult-to-interpret patterns. Stability therefore provides a more direct measure of the reliability of trend estimates under realistic sampling variability.
+
+### Summary across sites
+
+Across the Observatory, sample size requirements for trend detection and stability varied substantially among sites (Table 3). In most cases, the number of plots required to detect a 20% cumulative trend (Trend $K^*$) was smaller than the number required to achieve stable slope estimates ($K_{CV50}$), indicating that reliable estimation of trend magnitude requires more intensive sampling than detection alone.
+
+At some sites, the detection threshold was not achieved within the evaluated range of sample sizes, even though slope estimates became progressively more stable with increasing $K$. Conversely, sites with relatively low spatial heterogeneity showed similar sample size requirements for detection and stability.
+
+Together, these results indicate that detectability and stability represent distinct constraints on inference. Detection determines whether change can be identified, whereas stability determines whether that change can be quantified reliably. Both must be considered when evaluating monitoring design.
+
+```{r site-summary-table trendrun, echo=FALSE, message=FALSE}
+
+trendrun_summary_tbl <- read_csv("trendrun_summary_results_table.csv")
+
+kable(
+  trendrun_summary_tbl,
+  caption = "Summary of multi-year trend detection and slope stability across sites. Trend K* is the smallest evaluated number of plots at which at least 80% of species exceeded the detection criterion for a 20% imposed cumulative trend. Detection at K = 30 reports the percentage of species detectable at the maximum evaluated sample size. K_CV50 is the smallest evaluated number of plots at which the median slope coefficient of variation was less than or equal to 0.50; CV at K = 30 reports the median slope CV at the maximum evaluated sample size.",
+  booktabs = TRUE,
+  align = "l"
+)
+
+```
+
+
+## Synthesis across analyses
+
+The counterfactual change detection and trend analyses provide complementary but distinct perspectives on the detectability of ecological change. Both analyses show that increasing the number of sampled plots improves inference, but they differ in what constitutes sufficient sampling.
+
+The counterfactual analysis evaluates the ability to detect a discrete change, and indicates that the detection criterion for a 20\% relative change is often met at sample sizes on the order of $K \approx 20$--25. In contrast, the trend analysis shows that reliable estimation of directional change imposes a more stringent requirement. While trend detection thresholds are frequently reached at similar or smaller sample sizes, the stability analysis demonstrates that larger values of $K$ are required for slope estimates to be robust to spatial subsampling.
+
+Where both approaches converge on similar sample size requirements, detection and estimation are aligned, providing strong guidance for monitoring design. Where they diverge, detection alone can overstate the reliability of inference, as slope estimates may remain sensitive to plot selection even after detection thresholds are met. This distinction reflects the difference between identifying change and quantifying its magnitude.
+
+Together, these results indicate that detectability and stability represent complementary constraints on inference. Detection determines whether change can be identified, whereas stability determines whether that change can be estimated reliably. Evaluating both provides a framework for designing monitoring systems that are robust across multiple temporal scales.
+
+Full site-level detection and stability curves are provided in Appendices A--C to show variation in curve shape across the Observatory beyond the summary values reported in Tables 2 and 3.
+
+# DISCUSSION
+
+Monitoring design is constrained not only by how easily ecological change can be detected, but by how it is defined. Across NEON plant communities, we show that sample sizes sufficient for detecting discrete change are often insufficient for reliably estimating multi-year trends.
+
+## Complementary constraints on inference
+
+This analysis shows that conclusions about required spatial replication depend not only on the magnitude of ecological change, but also on how inference is defined. The counterfactual change detection and multi-year trend analyses provide complementary perspectives on this question.
+
+The counterfactual analysis evaluates the ability to detect a specified relative change at a single time point, providing guidance relevant to monitoring abrupt ecological shifts. The trend analysis evaluates the reliability of estimated rates of change over multi-year windows, providing guidance relevant to gradual directional processes.
+
+Across the Observatory, these approaches converge on a consistent range of sampling effort. For a 20\% relative change, most sites required approximately 20--25 plots to achieve the community-level detection criterion. A similar range was identified by the trend stability analysis as the point at which slope estimates become robust to plot selection (median CV $\le 0.50$). The convergence of these independent analyses, which operate on different temporal scales and use different statistical criteria, strengthens confidence in this recommendation.
+
+At the same time, the analyses highlight an important distinction: detection and estimation are not equivalent. Detection thresholds were often reached at smaller sample sizes than those required for stable trend estimation. In many cases, slope estimates remained sensitive to which plots were sampled even after detection thresholds were met. This indicates that detection alone can overstate the reliability of inference, and that stability provides a necessary complement for evaluating monitoring design.
+
+
+## Stability as a design criterion
+
+The slope stability framework provides a direct and interpretable measure of inference quality. The coefficient of variation of slope estimates quantifies the sensitivity of trend estimates to spatial sampling, and decreases monotonically with increasing sample size at nearly all sites.
+
+The CV threshold (CV $\le 0.50$) defines an analogue to the $K^*$ concept used in detection-based analyses: it identifies the point at which additional sampling no longer qualitatively changes the inferred trend. This provides a practical and interpretable criterion for monitoring design. Unlike detection thresholds, which depend on an arbitrary choice of effect size, the stability criterion is intrinsic to the data and reflects the spatial heterogeneity of the system.
+
+The contrast between detection and stability is particularly important in the context of trend inference. Detection-based trend metrics can exhibit non-monotonic behavior as additional plots are added, reflecting increased spatial variability in annual site means. This spatial dilution effect is ecologically real, but complicates interpretation of detection curves. In contrast, the stability metric directly evaluates the precision of the slope estimate and provides a consistent basis for comparing sites.
+
+
+## Per-species scaling and the role of filtering
+
+The use of per-species perturbation and detection thresholds scaled to raw mean cover ensures that all species face equivalent proportional challenges. This avoids the bias inherent in fixed absolute thresholds, where a given percentage-point change has very different ecological meaning across the abundance spectrum.
+
+The 3\% cover floor defines the portion of the community for which meaningful inference is possible. Below this threshold, a 20\% relative change falls within the resolution of the field protocol and cannot be reliably distinguished from measurement noise. As a result, the analyses characterize detection and stability for the more abundant component of the community, where ecological change can be resolved with confidence.
+
+At most NEON sites, a large fraction of species fall below this threshold. This does not represent a limitation of the modeling framework, but rather a constraint imposed by the combination of ecological rarity and measurement precision. The filtering step therefore clarifies the scope of inference rather than restricting it.
+
+
+## Modeling framework and dimension reduction
+
+The use of GJAM enables joint inference across species, accounting for shared environmental responses and residual covariance. This represents a substantial advance over the univariate framework used in the 2018 optimization analysis (Barnett et al. 2018), which could not capture coordinated responses among species.
+
+Dimension reduction (Taylor-Rodriguez et al. 2017) is essential for applying this framework at NEON scales. At most sites, the number of species exceeds the effective sample size required to estimate a full covariance matrix. The reduced-rank representation captures dominant modes of association while maintaining computational tractability, allowing the model to scale across the full diversity gradient of the Observatory.
+
+
+## Implications for NEON sampling design
+
+The results indicate that NEON’s current design of approximately 20--30 plots per site is well-calibrated for detecting 20\% relative changes in plant cover and for producing stable trend estimates over multi-year windows. This conclusion is supported by both the perturbation-based detection analysis and the trend stability analysis.
+
+Changes smaller than approximately 15\% are not reliably detectable under observed spatial variability at any evaluated sample size, establishing a practical lower bound on sensitivity. Conversely, changes of 25\% or greater are detectable at relatively small sample sizes, indicating that large ecological shifts will be captured regardless of sampling intensity.
+
+Site-level variation in required sample size reflects underlying spatial heterogeneity. Homogeneous systems can support reliable inference with relatively few plots, whereas more complex systems require greater spatial replication. The framework presented here provides a quantitative basis for evaluating these differences and adapting sampling strategies accordingly.
+
+
+## Addressing the 2018 trend detection question
+
+The 2018 design optimization effort identified trend detection as a priority question but could not address it due to limited temporal replication (Barnett et al. 2018). With 8--12 years of data now available, the moving-window trend analysis presented here directly addresses that gap.
+
+The key result is that reliable trend estimation imposes similar sample size requirements to those identified for detecting discrete changes. The stability framework provides an actionable interpretation of this result, linking sample size directly to the reliability of estimated rates of change.
+
+
+## Limitations and future directions
+
+Several limitations warrant consideration. First, the analysis is based on a single model fit per site, and does not propagate uncertainty associated with refitting the model under different plot subsets. As a result, the reported sample size requirements represent optimistic estimates of detection and stability. A refit-based analysis would provide a more complete accounting of uncertainty and is a priority for future work.
+
+Second, the analysis focuses on a range of relative effect sizes (15--30\%), with 20\% representing a critical threshold for detectability. Sensitivity to alternative detection thresholds was not explored and could be evaluated in future work.
+
+Third, the compositional structure of the GJAM model compresses absolute cover values relative to raw field observations. This motivates the use of raw field cover for defining perturbations and detection thresholds, but introduces a layer of abstraction that should be considered when interpreting results.
+
+The framework developed here clarifies that sampling adequacy depends on how ecological change is defined. Sample sizes sufficient for detecting discrete change are not necessarily sufficient for reliably estimating rates of change over time. Across NEON plant communities, both analyses indicate that approximately 20--25 plots are required for robust inference, but for different reasons: detection thresholds are met at this scale, and slope estimates become stable with respect to spatial sampling. 
+
+This distinction has direct implications for monitoring design. Designs based solely on detection criteria may underestimate the sampling effort required for reliable ecological inference. Incorporating stability-based metrics provides a more complete basis for evaluating monitoring performance, particularly for questions involving gradual, multi-year change. As NEON and similar observatories continue to mature, distinguishing between detectability and reliability will be essential for ensuring that monitoring design supports not just the detection of change, but its reliable interpretation.
+
+
+\section{\uppercase{References}}
+Claire Lunch, Christine Laney, Nathan Mietkiewicz, Eric Sokol, Kaelin Cawley and NEON (National Ecological Observatory Network) (2024). neonUtilities: Utilities for Working with NEON Data. R package version 2.4.3. https://doi.org/10.32614/CRAN.package.neonUtilities
+
+Barnett, D. T., P. A. Duffy, D. S. Schimel, R. E. Krauss, E. I. Azuaje, K. M. Irvine, F. W. Davis, A. E. Gelfand, A. S. Thorpe, D. Gudex-Cross, J. M.   \hangindent= 1cm
+McKay, J. T. McCorkel and C. L. Meier. The terrestrial and organism and biogeochemistry spatial sampling design for the National Ecological             Observatory Network. Ecosphere. 
+
+Bolker, M. B., M. E. Brooks, C. J. Clark, S. W. Geange, J. R. Poulsen, M. H. H. Stevens, J. S. White. 2008. Generalized linear mixed models: a practical \hangindent= 1cm
+guide for ecology and evolution. Trends in Ecology and Evolution 24(3):127-136. 
+
+Chao, A., Gotelli, N.J., et al., 2014. Rarefaction and extrapolation with Hill numbers: A framework for sampling and estimation in species diversity \hangindent= 1cm
+studies. Ecological Monographs, 84(1), pp.45-67.
+
+Chao, A. et al., 2015. Unveiling the species-rank abundance distribution by generalizing the Good-Turing sample coverage theory. Ecology, 96(5), \hangindent= 1cm
+pp.1189-1201.
+
+Clark, J, S., D. Nemergut, B. Seyednasrollah, P. J. Turner, and S. Zhang. 2017. Generalized joint attribute modeling for biodiversity analysis: median-zero, multivariate, multifarious data. Ecological Monographs \hangindent= 1cm
+87(1):34-56.
+
+Colwell, R.K. & Coddington, J.A., 1994. Estimating Terrestrial Biodiversity through Extrapolation. Philosophical Transactions of the Royal Society of \hangindent= 1cm
+London. Series B: Biological Sciences, 345(1311), pp.101-118. 
+
+Colwell, R.K. et al., 2012. Models and estimators linking individual-based and sample-based rarefaction, extrapolation and comparison of assemblages. \hangindent= 1cm
+Journal of Plant Ecology, 5(1), pp.3-21.
+
+Crowley, P. H. 1992. Resampling methods for computation-intensive data analysis in ecology and evolution. Annual Review of Systematics, 23:405-447.
+\hangindent= 1cm
+
+Elmendorf, S. C., K. D. Jones, B.I . Cook, J. M. Diez, C. A. F. Enquist, M.O. Jones, R. A. Hufft, S. J. Mazer, A. J. Miller-Rushing, D. Moore, M. D. \hangindent= 1cm
+Schwartz, and J. F. Weltzin. 2016. The Plant Phenology sampling design for the National Ecological Observatory Network. Ecosphere. 7(4):e01303. 10.1002/ecs2.1303.
+
+Gotelli, N.J. & Colwell, R.K., 2001. Quantifyinf biodiversity: procedures and pitfalls in the measurement and comparison of species richness. Ecology \hangindent= 1cm
+Letters, 4 Abstract(4), pp.379-391. 
+
+Gotelli, Nicholas J.; Colwell, R.K., 2011. Estimating species richness. In B. J. Magurran, Anne E.; McGill, ed. Biological diversity frontiers in \hangindent= 1cm
+measurement and assessment. Oxford University Press, pp. 39-54. 
+
+Hinckley, E. S., G. B. Bonan, G. J. Bowen, B. P. Colman, P. A. Duffy, C. L. Goodale, B. Z. Houlton, E. Marin-Spiotta, K. Ogle, S. V. Ollinger, E. A. \hangindent= 1cm
+Paul, P. M. Vitousek, K. C. Weathers, and D. G. Williams. 2016. The soil and plant biogeochemistry sampling design for The National Ecological Observatory Network Ecosphere. 7(3):e01234.
+
+Hsieh, T.C., Ma, K.H. & Chao, A., 2016. iNEXT: an R package for rarefaction and extrapolation of species diversity (Hill numbers). Methods in Ecology \hangindent= 1cm
+and Evolution, 7, pp.1451-1456.
+
+Kain, M. P., Bolker, B. M., M. W. McCoy. 2015. A practical guide and power analysis for GLMMs: detecting among treatment variation in random effects. \hangindent= 1cm
+PeerJ 3:e1226; DOI 10.7717/peerj.1226.
+
+Kao, R. H., C. M. Gibson, R. E. Gallery, C. L. Meier, D. T. Barnett, K. M. Docherty, K. K. Blevins, P. D. Travers, A. Azuaje, Y. P. Springer, K. M. \hangindent= 1cm
+Thibault, V. J. McKenzie, M. Keller, L. F. Alves, E. S. Hinckley, J. Parnell, and D. Schimel. 2012. NEON terrestrial field observations: designing continental-scale, standardized sampling. Ecosphere 3(12):1-17.
+
+Keller, M., D. S. Schimel, W. W. Hargrove, and F. M. Hoffman. 2008. A continental strategy for the national ecological observatory network. Frontiers in \hangindent= 1cmEcology and Environment 6:282-284.
+
+Meier, C. L, K. M. Thibault, and D. T. Barnett. 2023. Spatial and temporal sampling strategy connecting NEON Terrestrial Observation System protocols. \hangindent= 1cm
+Ecosphere 14(3):e4455. https://doi.org/10.1002/ecs2.4455
+
+Peet, R. K., T. R. Wentworth, and P. S. White. 1998. A flexible, multipurpose method for recording vegetation composition and structure. Castanea \hangindent= 1cm63(3):262-274.
+
+Ogle, K., and J. F. Reynolds. 2004. Plant responses to precipitation in desert ecosystems: integrating functional types, pulses, thresholds, and delays. \hangindent= 1cm
+Oecologia 141:282:294.
+
+Schimel, D., M. Keller, S. Berukoff, R. Kao, H. Loescher, H. Powell, T. Kampe, D. Moore, W. Gram, D. Barnett, R. Gallery, C. Gibson, K. Goodman, C. \hangindent= 1cm
+Meier, S. Parker, L. Pitelka, Y. Springer, K. Thibault, and R. Utz. 2011. 2011 science strategy: Enabling continental-scale ecological forecasting.
+
+Shmida, A. 1984. Whittaker's plant diversity sampling method. Israel Journal of Botany 33:41-46.
+
+Stohlgren, T. J., M. B. Falkner, and L. D. Schell. 1995. A modified-Whittaker nested vegetation sampling method. Vegetatio 117:113-121.
+\hangindent= 1cm
+
+Taylor-Rodriquez, D., K. Kaufeld, E. M. Schliep, J. S. Clark, and A. E. Gelfand. 2017. Joint Species Distribution Modeling: Dimension reduction using dirichlet processes. Bayesian Analysis. 12(4):939:967.
+\hangindent= 1cm
+
+Thompson, S. K. 2012. Sampling. Third edition. Wiley, New Jersey, USA.
+
+Thorpe, A. S., D. T. Barnett, S. C. Elmendorf, E.-L. S. Hinckley, D. Hoekman, K. D. Jones, K. E. LeVan, C. L. Meier, L. F. Stanish, and K. M. Thibault. \hangindent= 1cm
+2016. Introduction to the sampling designs of the National Ecological Observatory Network Terrestrial Observation System. Ecosphere 7(12):e01627. 10.1002/ecs2.1627
+
+USDA, NRCS. 2016. The PLANTS Database (http://plants.usda.gov, 23 January 2016). National Plant Data Team, Greensboro, NC 27401-4901 US.
+
+Zuur A.F., Ieno E.N., Walker Saveliev A.A., Smith N.J., G.M. (2009) Mixed effects models and extensions in ecology with R. Statistics for Biology and \hangindent= 1cm
+Health. Springer, New York, NY.
+
+Clark, J. S., D. Nemergut, B. Seyednasrollah, P. J. Turner, and S. Zhang. 2017. Generalized joint attribute modeling for biodiversity analysis: \hangindent= 1cm
+median-zero, multivariate, multifarious data. Ecological Monographs 87:34--56.
+
+Taylor-Rodriguez, D., K. Kaufeld, E. M. Schliep, J. S. Clark, and A. E. Gelfand. 2017. Joint species distribution modeling: dimension reduction using \hangindent= 1cm
+Dirichlet processes. Bayesian Analysis 12:939--967.
+
+Urquhart, N. S., S. G. Paulsen, and D. P. Larsen. 1998. Monitoring for policy-relevant regional trends over time. Ecological Applications 8:246--257.
+\hangindent= 1cm
+
+NEON (National Ecological Observatory Network). Plant presence and percent cover (DP1.10058.001), RELEASE-2025. https://doi.org/10.48443/zp67-s364. Dataset \hangindent= 1cm
+accessed from https://data.neonscience.org/data-products/DP1.10058.001/RELEASE-2025 on January 3, 2026.
+
+**Figure A1.** Counterfactual change detection at the 20\% relative effect for all sites. Curves show the percentage of species exceeding the detection criterion as a function of the number of plots sampled per year.
+
+**Figure A2.** Counterfactual change detection across all evaluated relative effects for all sites.
+
+**Figure B1.** Imposed trend detection at the 20\% cumulative trend for all sites.
+
+**Figure B2.** Slope estimation stability for all sites. Curves show the median coefficient of variation of species-level slope estimates as a function of the number of plots sampled per year.
+
+**Figure C1.** Relationship between sample-size requirements for counterfactual change detection and trend stability.

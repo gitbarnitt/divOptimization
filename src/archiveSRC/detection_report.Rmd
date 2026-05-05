@@ -1,0 +1,229 @@
+---
+title: "NEON GJAM Detection Report (read-only)"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  pdf_document:
+    number_sections: true
+    fig_caption: true
+fontsize: 11pt
+geometry: margin=1in
+params:
+  OUTPUT_DIR: "outputs"
+  example_site: "JERC"
+  top_n_species: 6
+  min_sample_size: 5
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+suppressPackageStartupMessages({
+  library(arrow); library(dplyr); library(ggplot2); library(tidyr); library(stringr)
+})
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+
+OUTPUT_DIR <- params$OUTPUT_DIR %||% Sys.getenv("OUTPUT_DIR", unset = "outputs")
+sp_path <- file.path(OUTPUT_DIR, "species_summary.parquet")
+dr_path <- file.path(OUTPUT_DIR, "draws_index.parquet")
+rc_path <- file.path(OUTPUT_DIR, "relative_cover.parquet")
+
+stopifnot(file.exists(sp_path), file.exists(dr_path), file.exists(rc_path))
+
+species_summary <- arrow::read_parquet(sp_path)
+draws_index     <- arrow::read_parquet(dr_path)
+relative_cover  <- arrow::read_parquet(rc_path)
+
+need <- function(df, cols, label) {
+  miss <- setdiff(cols, names(df))
+  if (length(miss)) {
+    cat(sprintf("**Skipped %s** — missing columns: %s\n\n", label, paste(miss, collapse=", ")))
+    return(FALSE)
+  }
+  TRUE
+}
+
+# simple figure counter (1,2,3...)
+.fig_counter <- 0L
+figcap <- function(txt) { .fig_counter <<- .fig_counter + 1L; paste0("Figure ", .fig_counter, ". ", txt) }
+
+# parameters
+threshold <- 0.8
+pair_coverage_target <- 0.75
+example_site <- params$example_site %||% (species_summary$site %>% unique() %>% sort() %>% .[1])
+MIN_N <- params$min_sample_size %||% 5
+```
+
+# Methods (brief)
+
+We fit a single joint species model (GJAM, continuous abundance) per site with predictors **year** (factor) and **nlcdClass** (factor). We compute species-level detection probabilities for a +20% change. This report is **read-only**: it assumes standardized inputs and performs only aggregation and plotting.
+
+Community-weighted mean (CWM) definition:
+\[
+\mathrm{CWM} = \frac{\sum_s w_s D_s}{\sum_s w_s}
+\]
+with relative-cover weights \(w_s\) and species detection \(D_s\).
+
+# Species-level detection (example site)
+
+```{r species-level}
+req <- c("site","species","year_pair","sample_size","replicate","mean_detection","mode")
+if (need(species_summary, req, "Species-level detection")) {
+
+  # Top species by relative cover at the example site
+  top_species <- relative_cover %>%
+    rename(site = siteID, species = taxonID) %>%
+    filter(site == example_site) %>%
+    group_by(species) %>%
+    summarise(mean_rc = mean(relative_cover, na.rm = TRUE), .groups = "drop") %>%
+    arrange(desc(mean_rc)) %>%
+    slice_head(n = params$top_n_species) %>%
+    pull(species)
+
+  var_sum <- species_summary %>%
+    filter(site == example_site, mode == "sensitivity_variable", species %in% top_species, sample_size >= MIN_N) %>%
+    group_by(species, year_pair, sample_size) %>%
+    summarise(
+      mean_det = mean(mean_detection, na.rm = TRUE),
+      lo = if ("ci_lower" %in% names(cur_data_all())) mean(ci_lower, na.rm = TRUE) else NA_real_,
+      hi = if ("ci_upper" %in% names(cur_data_all())) mean(ci_upper, na.rm = TRUE) else NA_real_,
+      .groups = "drop"
+    )
+
+  p <- ggplot(var_sum, aes(sample_size, mean_det, color = species, group = species)) +
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 2) +
+    geom_errorbar(aes(ymin = lo, ymax = hi), width = 0.3, alpha = 0.5) +
+    geom_hline(yintercept = 0.8, linetype = 2) +
+    scale_y_continuous(limits = c(0,1)) +
+    facet_wrap(~ year_pair, scales = "free_x") +
+    labs(x = "Sample size (plots)", y = "Detection probability",
+         title = paste0("Species-level detection (", example_site, ")"))
+  p
+}
+```
+
+# Community-weighted detection (approximate, by year pair)
+
+```{r cwm-by-pair}
+req1 <- c("site","species","year_pair","sample_size","replicate","mean_detection","mode")
+req2 <- c("siteID","taxonID","year","relative_cover")
+if (need(species_summary, req1, "CWM by pair") && need(relative_cover, req2, "relative cover")) {
+
+  rc_mean <- relative_cover %>%
+    rename(site = siteID, species = taxonID) %>%
+    filter(site == example_site) %>%
+    group_by(species) %>%
+    summarise(w = mean(relative_cover, na.rm = TRUE), .groups = "drop")
+
+  # Approximate CWM from species-level means (per pair × N)
+  rep_avg_var <- species_summary %>%
+    filter(site == example_site, mode == "sensitivity_variable", sample_size >= MIN_N) %>%
+    left_join(rc_mean, by = "species") %>%
+    filter(!is.na(w)) %>%
+    group_by(year_pair, sample_size, replicate) %>%
+    summarise(mean_detection = sum(mean_detection * w) / sum(w), .groups = "drop") %>%
+    group_by(year_pair, sample_size) %>%
+    summarise(mean_detection = mean(mean_detection, na.rm = TRUE), .groups = "drop")
+
+  p <- ggplot(rep_avg_var, aes(x = sample_size, y = mean_detection, color = year_pair, group = year_pair)) +
+    geom_line(linewidth = 0.9) +
+    geom_point(size = 2) +
+    geom_hline(yintercept = threshold, linetype = "dashed") +
+    scale_y_continuous(limits = c(0,1)) +
+    scale_x_continuous(breaks = sort(unique(rep_avg_var$sample_size))) +
+    labs(x = "Sample size (plots)", y = "CWM detection", color = "Year pair",
+         title = paste0("Community-weighted detection (", example_site, ")"))
+  p
+}
+```
+
+# Mean across year pairs (example site)
+
+```{r cwm-mean}
+req1 <- c("site","species","year_pair","sample_size","replicate","mean_detection","mode")
+req2 <- c("siteID","taxonID","year","relative_cover")
+if (need(species_summary, req1, "CWM mean") && need(relative_cover, req2, "relative cover")) {
+
+  rc_mean <- relative_cover %>%
+    rename(site = siteID, species = taxonID) %>%
+    filter(site == example_site) %>%
+    group_by(species) %>%
+    summarise(w = mean(relative_cover, na.rm = TRUE), .groups = "drop")
+
+  site_avg_var <- species_summary %>%
+    filter(site == example_site, mode == "sensitivity_variable", sample_size >= MIN_N) %>%
+    left_join(rc_mean, by = "species") %>%
+    filter(!is.na(w)) %>%
+    group_by(year_pair, sample_size, replicate) %>%
+    summarise(cwm = sum(mean_detection * w) / sum(w), .groups = "drop") %>%
+    group_by(sample_size) %>%
+    summarise(detection_mean = mean(cwm, na.rm = TRUE), .groups = "drop")
+
+  ggplot(site_avg_var, aes(x = sample_size, y = detection_mean, group = 1)) +
+    geom_line(linewidth = 0.9) +
+    geom_point(size = 2) +
+    geom_hline(yintercept = threshold, linetype = "dashed") +
+    scale_y_continuous(limits = c(0,1)) +
+    scale_x_continuous(breaks = sort(unique(site_avg_var$sample_size))) +
+    labs(x = "Sample size (plots)", y = "CWM detection",
+         title = paste0("Mean across year pairs (", example_site, ")"))
+}
+```
+
+# Decision metric: fraction of year pairs ≥ 0.8 (all sites)
+
+```{r decision-metric}
+req <- c("site","year_pair","sample_size","replicate","mean_detection","mode")
+if (need(species_summary, req, "Decision metric")) {
+
+  # For simplicity, use species-level mean_detection averaged within pair × N (unweighted)
+  pair_means <- species_summary %>%
+    filter(mode == "sensitivity_variable") %>%
+    group_by(site, year_pair, sample_size, replicate) %>%
+    summarise(md = mean(mean_detection, na.rm = TRUE), .groups = "drop") %>%
+    group_by(site, year_pair, sample_size) %>%
+    summarise(md = mean(md, na.rm = TRUE), .groups = "drop")
+
+  frac_tbl <- pair_means %>%
+    mutate(hit = md >= threshold) %>%
+    group_by(site, sample_size) %>%
+    summarise(frac_pairs = mean(hit), .groups = "drop")
+
+  ggplot(frac_tbl, aes(x = sample_size, y = frac_pairs, group = site)) +
+    geom_line(alpha = 0.5) +
+    geom_point(alpha = 0.7, size = 1.8) +
+    scale_y_continuous(limits = c(0,1)) +
+    scale_x_continuous(breaks = sort(unique(frac_tbl$sample_size))) +
+    labs(x = "Sample size (plots)", y = "Fraction of year pairs ≥ 0.8",
+         title = "Decision metric by site")
+}
+```
+
+# Posterior draw illustration (optional)
+
+```{r posterior-illustration}
+# This section uses a single shard path if a 'file' column is present in draws_index.
+if ("file" %in% names(draws_index)) {
+  d1 <- draws_index %>%
+    filter(sample_size >= MIN_N) %>%
+    arrange(sample_size)
+  if (nrow(d1)) {
+    fp <- d1$file[[1]]
+    if (is.character(fp) && file.exists(fp)) {
+      dd <- tryCatch(arrow::read_parquet(fp), error = function(e) NULL)
+      if (!is.null(dd) && "detected" %in% names(dd)) {
+        ggplot(dd, aes(x = as.numeric(detected))) +
+          geom_histogram(bins = 2) +
+          labs(x = "Detected (0/1)", y = "Count", title = "Example draws shard")
+      } else {
+        cat("**Skipped** — draws shard missing or no `detected` column.\n")
+      }
+    } else {
+      cat("**Skipped** — shard path not found.\n")
+    }
+  } else {
+    cat("**Skipped** — no draws index rows.\n")
+  }
+} else {
+  cat("**Skipped** — `file` column not present in draws_index.\n")
+}
+```

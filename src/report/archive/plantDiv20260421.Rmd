@@ -1,0 +1,684 @@
+---
+title: "&nbsp;"
+fontsize: 11pt
+geometry: margin=1in, includefoot, top=1in, bottom=1.25in
+header-includes:
+- \usepackage{fancyhdr}
+- \usepackage{ragged2e}
+#- \usepackage[usenames,dvipsnames,svgnames,table]{xcolor}
+- \usepackage{lastpage}
+- \usepackage{hyperref}
+- \usepackage[hypcap]{caption}
+- \usepackage{array}
+- \usepackage{graphicx}
+- \usepackage[datesep=/]{datetime2}
+- \usepackage{ltablex}
+- \usepackage{pifont}
+- \usepackage{float}
+- \usepackage{longtable}
+- \setlength{\headsep}{0.7in}
+linkcolor: black
+mainfont: Calibri
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_width: 4
+    latex_engine: xelatex
+    number_sections: yes
+  html_document: default
+  word_document: default
+---
+```{r libraries, echo=FALSE, message=FALSE, warning=FALSE}
+
+#load libraries
+#if packages listed below are not installed, use install.packages("packageName") before running library(packageName)# 
+
+library(knitr)
+library(kfigr)
+library(dplyr)
+library(stringr)
+
+
+# install TeX program :  http://miktex.org/2.9/setup (Windows) ; http://tug.org/mactex/ (Mac)
+# re-install, update miktex - datetime2 package (called here) was released 3/24/15, all older versions do not have this package pre-loaded.
+# documentation for kfigr https://github.com/mkoohafkan/kfigr/blob/master/vignettes/introduction.Rmd
+
+```
+
+```{r titlePage, echo=FALSE}
+
+#Change for each document
+
+#Title
+title <- "TOS Design Optimization: Plant Diversity Sampling" #change AOS/TOS and Protocol Name
+
+#Authors
+firstAuthor <- "Dave Barnett"
+firstAuthorDate <- "03/03/2026"
+firstAuthorOrg <- "SCI"
+
+secondAuthor <- "Eric Sokole"
+secondAuthorDate <- "03/03/2026"  
+secondOrg <- "SCI"
+
+thirdAuthor <- "Courtney Meier"
+thirdAuthorDate <- "03/03/2026"
+thirdOrg <- "SCI"
+
+#repeat or delete as necessary 
+
+#Approvals
+approvalName <- "Kate Thibault"
+approvalOrg <- "SCI"
+approvalDate <- "mm/dd/yyyy"
+
+secondApprovalName <- "Approver 2"
+secondApprovalOrg <- "SYS"
+secondApprovalDate <- "mm/dd/yyyy"
+
+#repeat or delete as necessary 
+
+#Release
+releasedByName <- "Releaser"
+releasedByOrg <- "CM"
+releasedByDate <- "mm/dd/yyyy"
+
+```
+
+[//]: TEMPLATE SECTION 1 - DO NOT CHANGE!! #####################################
+[//]: These are document settings for NEON template, code will not print
+
+
+\DTMsetdatestyle{mmddyyyy}
+\thispagestyle{fancy}
+\sloppy
+\RaggedRight
+\pagestyle{fancy}
+\pagenumbering{gobble}
+\fancyhf{}
+\fancyheadoffset[L, R]{0.5in}
+\fancyfootoffset[L, R]{0.5in}
+\fancyhead[L]{\includegraphics[width=4cm]{Logo}
+\vspace{0.5cm}} 
+
+\fancyhead[R]{
+\footnotesize
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|p{5cm}|p{5cm}|p{1in}|}
+\hline
+\multicolumn{2}{|p{11cm}|}{\emph{Title:} `r title`} & \emph{Date:} `r firstAuthorDate` \\ \hline
+\emph{}    & \emph{Author:} `r firstAuthor`        & \emph{}  \\ \hline
+\end{tabular}
+\vspace{1cm}
+} 
+        
+[//]: check out http://www.tablesgenerator.com/latex_tables for help with code to generate tables
+
+\renewcommand{\headrulewidth}{0pt}
+\maketitle
+\thispagestyle{fancy}
+
+\begin{center}
+
+\vspace{0.3in}
+\huge \bfseries \uppercase {`r title` \\[0.4cm] }
+
+\end{center}
+
+\vspace{1in}
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{PREPARED BY} &\textbf{ORGANIZATION}  &\textbf{DATE} \\ \hline
+`r firstAuthor`      & `r firstAuthorOrg`         & `r firstAuthorDate` \\ \hline
+`r secondAuthor`     & `r secondOrg`         & `r secondAuthorDate` \\ \hline
+`r thirdAuthor`     & `r thirdOrg`         & `r thirdAuthorDate` \\ \hline
+\end{tabular}
+
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{APPROVALS}     &\textbf{ORGANIZATION}  &\textbf{APPROVAL DATE} \\ \hline
+`r approvalName`       & `r approvalOrg`       &  `r approvalDate`\\ \hline
+`r secondApprovalName` & `r secondApprovalOrg` &`r secondApprovalDate`  \\ \hline
+\end{tabular}
+
+\setlength{\extrarowheight}{1mm}
+\begin{tabular}{|m{5.5cm}|m{5.5cm}|m{5.5cm}|}
+\hline
+\textbf{RELEASED BY} &\textbf{ORGANIZATION}  &\textbf{RELEASE DATE} \\ \hline
+`r releasedByName` & `r releasedByOrg`        &  `r releasedByDate` \\ \hline
+\end{tabular}
+
+\vspace{1.5in}
+
+\begin{center}
+See configuration management system for approval history.
+
+\bigskip
+
+
+
+\scriptsize{The National Ecological Observatory Network is a project solely funded by the National Science Foundation and managed under cooperative agreement by Battelle. Any opinions, findings, and conclusions or recommendations expressed in this material are those of the author(s) and do not necessarily reflect the views of the National Science Foundation.}
+\end{center}
+
+
+\fancyfoot[L]{
+\footnotesize{\color{gray}Template\_NEON.DOC.004243 Rev J}
+} 
+
+\newpage
+
+\vspace{3in}
+
+
+\newpage
+\pagenumbering{roman}
+\fancyfoot[C]{\thepage}
+\fancyfoot[L]{
+\footnotesize{}
+} 
+
+\renewcommand\contentsname{\uppercase{Table of contents}}
+\tableofcontents
+\fancyfoot[C]{\thepage}
+\renewcommand\listtablename{\uppercase{list of tables and figures}}
+\let\oldnumberline\numberline
+\renewcommand{\numberline}{\tablename~\oldnumberline}
+\listoftables
+\fancyfoot[C]{\thepage}
+\renewcommand{\numberline}{\figurename~\oldnumberline}
+\renewcommand\listfigurename{}
+\addtocontents{lof}{\vskip -1.2cm}
+\listoffigures
+\fancyfoot[C]{\thepage}
+
+
+\newpage
+
+
+\pagenumbering{arabic} 
+\fancyfoot[C]{
+Page \thepage \hspace{1pt} of \pageref{LastPage}
+}
+<!---
+This is super secret text that will not appear in the pdf. 
+
+The \changeMe command turns text red to indicate that section should be modified for each document. Remove the \changeMe{} to make the text black
+--->
+
+\newcommand{\changeMe}[1]{\textcolor{red}{#1}}
+
+\section{\uppercase{Background and goals}}
+
+The National Ecological Observatory Network (NEON) generates data and samples to advance understanding of ecological processes and inform management of US ecosystems. Multiple tiers of requirements provide traceable links between this high-level NEON mission statement and the protocols that direct data collection. The Terrestrial Observation System (TOS) science design for plant diversity ([RD03]) and the resulting study design, protocol ([RD03]), and data product (Plant Presenece and Percent Cover, DP1.10058.001) are designed to enable status and trends in composition, abundance, and richness of plant species and function types at multiple scales. 
+
+## Description of sample design and available data
+
+NEON's plot-based sampling of plant species diversity satisfies the requirements that "NEON's measurement strategy will include biological invaders and diversity of key organismal groups" and "NEON measurements of plant diversity will include native and invasive plant species (Schimel et al. 2011)." Species are observed with the Carolina Vegetation Survey (Peet et al. 1998) multi-scale plot design that borrows from a sampling approach pioneered by Robert Whittaker (Shmida 1984, Stohlgren 1995). NEON samples with a 20 x 20m square plot with four 10m x 10m subplots containing nested 10m$^2$ and 1m$^2$ subplots (Figure 1). Specifically: 
+
+*  The identity of each species (or the lowest taxonomic rank possible) according to naming conventions maintained by the US Department of Agriculture, Natural Resources Conservation Service PLANTS database (USDA, NRCS 2016) is recorded in each subplot - eight 1m$^2$, eight 10m$^2$, four 100m$^2$. 
+*  Estimates of taxon-specific abundance is made with estimates of cover within the 1m$^2$ subplots. 
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.1\textwidth]{plotLayout}
+\caption{A diagram of the multiscale plot for observations of plant cover-abundance and occurrence data.  }
+\end{figure}
+
+At each of 47 terrestrial NEON sites, the NEON spatial sampling design for organisms and soil directs observations to (Thorpe et al. 2016):
+
+*  Tower Base Plots: Randomly placed plots near the NEON flux tower designed to calibrate sensor-based measures of atmosphere and soil  
+*  Distributed Base Plots: Plots to measure variability across larger landscapes according to a stratified-random design  
+
+The plant diversity protocol is implemented at three of the 20–30 Tower Base Plots. The majority of the plant species diversity sampling effort occurs at the Distributed Base Plots (Thorpe et al. 2016). Ecological literature (e.g., Stohlgren 2007), early input from the ecological community, and power analyses (Thompson et al. 2012, Barnett et al. 2018) resulted in an initial sample size of 20–30 Distributed Base plots at each site.
+
+The frequency and timing of sampling is guided by NEON requirements (Schimel et al. 2011). Implementing the protocol at each plot at least one time each year enables the quantification of annual rates of change. These sampling bouts occur during a one to two month period when the majority of species flower or possess other parts conducive to identification. This sampling window targets annual peaks in greenness as measured by MODIS, and incorporates input from local ecologists and NEON phenology observations (Meier et al. 2023). The few NEON sites characterized by distinct biomodal patterns in peak greenness populated disparate suites of apparent species are sampled twice annually.  For example, the Sonoran desert (represented by the NEON site at the Santa Rita Experimental Range) gets rain in late winter and a monsoonal moisture pulse late in the summer. Plant species adapted to the particular intersection of temperature and the timing and amount of precipitation grow and flower and can be identified only during one of the two distinct events (Ogle and Reynolds 2004).
+
+For the purpose of these analyses, data includes all available Distributed Base Plots from all 47 NEON sites (NEON 2025) downloaded directly from the application programming interface (API) and stacked with ‘neonUtilities::stackByTable()‘ function on 12/20/2025.  
+
+
+## Analytical Goals
+
+Statistically rigorous analyses are needed to assess the capacity of NEON data to address Observatory goals and to guide sampling design optimization efforts. Initial spatial and temporal sampling designs for the NEON Terrestrial Observation System (TOS) and Aquatic Observation System (AOS) were developed in collaboration with Technical Working Groups (TWGs) comprised of community experts, and were captured in Science Design documents (RD[01]). The initial designs relied on analysis of published datasets (where relevant), analysis of NEON prototype data collection efforts, and subject matter expertise.  
+As the NEON Observatory matures and continues full operations, it is critical for TOS and AOS initial design assumptions to be tested with multiple years of data collected from NEON sites. Analyses must: 
+
+*  Describe where the data support reduction of TOS and AOS sampling effort without compromising NEON's ability to meet design requirements (e.g., target sites for reduction in sampling effort, spatial scales where replication is not necessary, etc.). 
+*  Evaluate effects of design modifications on uncertainty and ability to detect year-to-year changes for key response variables (e.g., effects of reduced spatial and/or temporal sampling effort). 
+
+Analysis and evaluation of the data provides a feedback loop that enables assessment of the Designs relative to Observatory goals. Moreover, results of these analyses will allow the NEON TOS and AOS to effectively prioritize sampling costs in the face of uncertain future funding levels.  
+
+Specification of analyses suitable for evaluating the efficacy of the NEON TOS and AOS sampling designs required development of specific questions. Power analyses and sampling simulations were then used to determine the degree to which design modifications affected the ability of the data to address those questions. Questions and analytical approaches were developed in consultation with NEON Technical Working Groups comprised of subject matter experts selected from the ecological community. 
+
+The two primary and actionable questions of a 2018 effort for these data were:
+
+\begin{enumerate}
+   \item Where is the variability in the data? Specifically, what proportion of the variance at each site exists at the year, bout, plot, and subplot scales?  Understanding the components of variance provides a critical component of the actionable directions for modifying sampling size, subplot sampling intensity, and temporal sampling frequency. 
+   
+   \item Is it possible to detect meaningful interannual variation in key response variables? Understanding the power to detect change between years provides a direct indication of the sample sizes required to detect meaningful ecological change. 
+\end{enumerate}
+
+The variance components analysis supported the reduction in the number of the number nested 10m$^2$ and 1m$^2$ subplots within each plot from eight to six. Additionally, the 10m$^2$ and 100m$^2$ subplots at which species presence are recorded were reduced to every other year sampling. The 1m$^2$ subplots at each plot continue to be sampled annually.
+
+The power analysis reduced the total number of plots sampled a small number of sites. Only sites with three or more years of data were considered.
+
+With many more years of data available across all NEON terrestrial sites in 2025 (Appendix A), this effort revisits the question of detectability of interannual change in plant community composition and abundance. Specifically, we ask: what level of spatial replication is required to reliably characterize interannual variation in key plant diversity response variables, given the magnitude of change and variability observed at NEON sites?
+
+Addressing this question requires distinguishing between two temporal scales at which change detection is relevant. First, we evaluate the spatial replication required to detect a specified magnitude of year-to-year change under plausible data-generating scenarios. Second, we assess the spatial replication required to detect directional trends that accumulate over multi-year observation windows. Together, these analyses provide complementary bounds on the minimum sampling effort required to detect meaningful ecological change at both short and long temporal horizons, and offer a framework for evaluating potential modifications to spatial replication while maintaining NEON’s capacity to meet its scientific objectives.
+
+\section{\uppercase{Related Documents and Acronyms}}
+
+##  Reference Documents
+
+```{r Reference Document list, echo=FALSE}
+
+# Documents will be assigned an RD[##] in the order they are listed
+
+RDlist <- as.data.frame(rbind(
+  "name1" = c("name"="NEON Observatory Design", "doc"= "NEON.DOC.000001"),
+  "name2" = c("name"="NEON Level 1, Level 2, and Level 3 Data Products Catalog", "doc"= "NEON.DOC.002652"),
+  "name3" = c("name"="TOS Science Design for Plant Diversity", "doc"="NEON.DOC.000912"),
+  "name4" = c("name"="TOS Protocol and Procedure: Plant Diversity Sampling", "doc"="NEON.DOC.014042")
+  # any additional documents...
+))
+
+RDlist <- cbind(RDlist,
+  "ref"= paste("RD[",
+              formatC(1:nrow(RDlist), width=2, flag="0"),
+              "]", 
+              sep="")
+)
+
+```
+\begin{tabular}{|m{1cm}|m{3cm}|m{11cm}|}
+\hline
+`r paste(RDlist$ref, "&",
+        RDlist$doc, "&",
+        RDlist$name, "\\\\ ","\\hline", sep="", collapse=" ")`
+\end{tabular}
+
+
+##  Acronyms
+<!---
+Fill in the Acronym before the "&"" and the definition after the "&"
+--->
+\begin{tabular}{|m{3cm}|m{12.5cm}|}
+\hline
+\bfseries{Acronym}&  \bfseries{Definition}  \\ \hline
+  NEON  &  National Ecological Observatory Network \\ \hline
+  TOS   &  Terrestrial Observation System \\ \hline
+ TWG   &  Technical Working Group \\ \hline
+ NLCD  & National Land Cover Database \\ \hline
+ GJAM  & Generalized Joint Attribute Model \\ \hline
+ CA    & Censored Abundance (GJAM likelihood for cover data) \\ \hline
+ MCMC  & Markov Chain Monte Carlo \\ \hline
+\end{tabular}
+
+\section{\uppercase{Methods and Results}}
+
+We evaluated the ability of NEON’s terrestrial plant sampling design to detect ecological change in species- and community-level response variables using a hierarchical Bayesian modeling framework combined with simulation-based power and sensitivity analyses. The assessment comprises two complementary analyses. First, we conducted a perturbation-based power analysis to quantify the spatial replication required to detect a specified magnitude of year-to-year change under realistic ecological variability. Second, we evaluated the spatial replication required to detect directional trends over multi-year time horizons using a moving-window framework. Together, these analyses address the two primary temporal scales at which change detection is relevant to NEON’s mission: abrupt interannual shifts and gradual directional trends.
+
+
+## Data and preprocessing
+
+We use NEON plant diversity cover observations from the 1m$^2$ subplots aggregated to the plot-year level. Consider a site where 30 plots are sampled annually for 8 years: the observation unit for modeling is a single plot in a single year, yielding up to 240 plot-year records. Within each plot-year, the six 1m$^2$ subplot observations are averaged to produce a single cover value per species per plot per year.
+
+Prior to model fitting, species occurring in fewer than three plots across the entire site record are aggregated into a composite ``OTHER'' category. This filter removes species for which spatial replication is insufficient to estimate covariance structure, while retaining them in the modeled community so that their aggregate contribution to total cover is represented. Species with all-zero cover or zero variance after aggregation are removed. The ``OTHER'' category participates in model fitting but is excluded from power and trend analyses, which focus on individually identifiable species.
+
+Separately, a cover floor of 3\% mean raw field cover is applied when evaluating power and trend stability. Species below this threshold are excluded from the power analysis because a 20\% relative change at 3\% cover corresponds to 0.6 percentage points---below the 1\% recording resolution of NEON's field protocol. This cover floor is computed from the raw field observations (mean of \texttt{percentCover} per species across all plot-years at the site) and is independent of the GJAM model predictions, which undergo compositional normalization that compresses cover values.
+
+
+## Perturbation-based power analysis (TierP0)
+
+The objective was to estimate the minimum number of spatial plots required to detect a specified interannual change in plant cover with high probability, given realistic spatial and temporal variability observed at NEON sites. Both analyses share a common modeling framework. Plant species cover was modeled with generalized joint attribute models (GJAM; Clark et al. 2017), a multivariate hierarchical Bayesian framework that jointly represents all species at a site while accounting for shared responses to environmental covariates and residual covariance among species. A single GJAM model is fit per site using all available plot-years; both TierP0 and TrendRun analyses draw on the posterior output of this shared fit. For plot $p$ in year $t$, the vector of observed percent cover values for all species is modeled as:
+
+$$
+\mathbf{y}_{p,t} \sim f(\boldsymbol{\mu}_{p,t}, \boldsymbol{\Sigma})
+$$
+
+$$
+\boldsymbol{\mu}_{p,t} = \mathbf{X}_{p,t}\boldsymbol{\beta}
+$$
+
+where $\boldsymbol{\mu}_{p,t}$ is the latent mean cover vector, $\mathbf{X}_{p,t}$ is the design matrix of covariates (including year effects), $\boldsymbol{\beta}$ are species-specific regression coefficients, and $\boldsymbol{\Sigma}$ is a residual covariance matrix capturing shared variation among species. All species are modeled with a censored-abundance (CA) likelihood, which accommodates the semi-continuous nature of percent cover data (point mass at zero with continuous positive values).
+
+Two model specifications were used depending on land cover heterogeneity at each site: $\mathbf{Y} \sim \text{year} + \text{nlcdClass}$ at sites with multiple National Land Cover Database classes, and $\mathbf{Y} \sim \text{year}$ at sites with a single class. Year was treated as a categorical factor to enable direct contrasts between consecutive sampling periods. The MCMC sampler was run for 5,000 iterations with 2,500 discarded as burn-in, yielding 2,500 posterior draws for inference. Convergence was assessed via effective sample size of regression coefficients.
+
+
+To estimate power to detect interannual change, we conducted a simulation-based power analysis within the Bayesian framework using posterior predictive simulation. For each site and for each year with at least five plots sampled, paired counterfactual prediction sets were generated: a baseline set and a perturbed set, both derived from the same year's data and model parameters but with independent observation-level noise realizations. This paired design isolates the imposed perturbation from natural year-to-year variation, ensuring that detected differences are attributable to the imposed effect rather than to ecological differences between years.
+
+Posterior predictive outcomes were generated from the fitted GJAM posterior distribution, incorporating uncertainty in regression coefficients and the full residual species covariance structure. Under dimension reduction (see below), GJAM represents the $S \times S$ covariance as $\boldsymbol{\Sigma} = \mathbf{A}\mathbf{A}' + \sigma^2_\varepsilon \mathbf{I}$, where $\mathbf{A}$ is derived from factor loadings and cluster assignments sampled during MCMC. Two independent sets of posterior predictive draws were generated for the same set of plot-year observations, each with independent noise realizations $\mathbf{w}$ and $\boldsymbol{\varepsilon}$ but identical model parameters. This produces a matched pair of prediction arrays that share the same systematic structure but differ only in observation-level noise.
+
+The perturbation was then applied as a per-species additive shift proportional to each species' mean raw field cover:
+
+$$
+\mu^{\text{pert}}_{s} = \mu^{\text{base}}_{s} + \delta \cdot \bar{c}_s
+$$
+
+where $\bar{c}_s$ is the mean percent cover of species $s$ computed from raw field observations across all plot-years at the site, and $\delta$ is the relative effect size. A species at 10\% mean cover with $\delta = 0.20$ receives a +2 percentage point perturbation; a species at 60\% mean cover receives +12 percentage points. This per-species scaling ensures every species faces the same proportional challenge regardless of baseline cover level. We tested effect sizes of $\delta \in \{0.15, 0.20, 0.25, 0.30\}$, corresponding to 15--30\% relative changes in cover.
+
+Species with mean raw field cover below 3\% were excluded from the power analysis. At this cover level, a 20\% relative change corresponds to 0.6 percentage points---below the 1\% recording resolution of NEON's field protocol. The 3\% floor ensures that the detection framework operates in a range where both model predictions and field measurements are reliable.
+
+For each site and year, the baseline and perturbed prediction sets were subsampled to represent alternative levels of spatial replication. All plots sampled in a given year were eligible; no requirement was imposed that plots be sampled in consecutive years, as the paired counterfactual design generates both prediction sets from the same year's data. Subsamples consisted of $K$ plots drawn without replacement, with:
+
+$$
+K \in \{30, 25, 20, 15, 10, 8, 6, 5\}
+$$
+
+For each value of $K$, the subsampling and detection procedure was repeated 50 times, yielding an empirical estimate of statistical power as the proportion of replicates in which the imposed change was successfully detected.
+
+Detection was evaluated using a per-species absolute difference criterion with a proportional threshold. For each Monte Carlo replicate, the site-level mean cover was computed for both the baseline and perturbed prediction sets by averaging across the $K$ sampled plots within each posterior draw. The detection criterion for species $s$ was:
+
+$$
+P\left(\left|\bar{\mu}^{\text{pert}}_{s,K} - \bar{\mu}^{\text{base}}_{s,K}\right| \ge \tau_s\right) \ge 0.80
+$$
+
+where $\bar{\mu}_{s,K}$ denotes the mean across $K$ sampled plots for a given posterior draw, and $\tau_s = 0.10 \times \bar{c}_s$ is a per-species detection threshold equal to 10\% of the species' mean raw cover. This threshold represents the minimum change distinguishable from observation noise, scaled to each species' abundance. The ratio of imposed effect to detection threshold is constant across species (e.g., 2:1 at $\delta = 0.20$), providing equivalent statistical difficulty regardless of cover level.
+
+A species was classified as detectable at sample size $K$ and effect $\delta$ when the above criterion was satisfied in at least 80\% of Monte Carlo replicates (power $\ge$ 0.80). The community-level metric reports the percentage of species (above the 3\% cover floor) that are individually detectable at each $K$. For each site, species, and effect size, we summarized the resulting power curves and defined the minimum detectable effect (MDE) as the smallest $\delta$ for which community-level detection reached 80\%.
+
+
+### Dimension reduction and posterior prediction
+
+Joint modeling of plant communities at NEON sites frequently involves hundreds of species observed across tens of plots, producing covariance matrices that are high-dimensional relative to the available sample size. To illustrate, consider a southeastern forest site with 400 plant species observed across 30 plots per year: estimating the $400 \times 400$ residual covariance matrix $\boldsymbol{\Sigma}$ from 300 plot-year observations is not numerically feasible using standard approaches.
+
+GJAM addresses this challenge through a Bayesian dimension reduction framework (Taylor-Rodriguez et al. 2017; Clark et al. 2017). Rather than estimating $\boldsymbol{\Sigma}$ directly, the model represents the $S$-dimensional species response through a lower-dimensional factor structure. Species are assigned to $N$ clusters via a Dirichlet process, and within each cluster, an $r$-dimensional factor loading matrix $\mathbf{Z}$ captures shared covariance. The implied covariance is:
+
+$$
+\boldsymbol{\Sigma} = \mathbf{A}\mathbf{A}' + \sigma^2_\varepsilon \mathbf{I}
+$$
+
+where $\mathbf{A} = \mathbf{Q}(\mathbf{k})\mathbf{Z}$ maps the reduced factor structure back to the full species space via cluster assignments $\mathbf{k}$, and $\sigma^2_\varepsilon$ is a scalar residual variance. This factorization reduces the effective number of covariance parameters from $S(S+1)/2$ to $(N \times r) + 1$, enabling stable estimation even when $S$ greatly exceeds $n$.
+
+For all sites in this analysis, we imposed dimension reduction with $N = 20$ clusters and $r = 5$ factors. Posterior predictive draws were generated from the MCMC output. Where GJAM stored per-observation posterior predictive draws directly (the ``ygibbs'' chain), these were used without modification. At sites where storage constraints prevented retention of the full predictive array, predictions were reconstructed from the stored MCMC chains for $\mathbf{B}$ (regression coefficients), $\mathbf{k}$ (cluster assignments), $\mathbf{Z}$ (factor loadings), and $\sigma^2_\varepsilon$ (residual variance) using the generative model:
+
+$$
+\mathbf{y}_i = \mathbf{B}\mathbf{x}_i + \mathbf{A}\mathbf{w}_i + \boldsymbol{\varepsilon}_i, \quad \mathbf{w}_i \sim \mathcal{N}(\mathbf{0}, \mathbf{I}_r), \quad \boldsymbol{\varepsilon}_i \sim \mathcal{N}(\mathbf{0}, \sigma^2_\varepsilon \mathbf{I})
+$$
+
+This reconstruction preserves the full inter-species covariance structure without requiring formation of the $S \times S$ matrix, and was validated against the direct posterior predictive draws at sites where both were available (species-level mean correlation $> 0.99$).
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- Conceptual figure: dimension reduction schematic showing S species mapped through N clusters and r factors -->
+
+
+## Multi-year trend detection (TrendRun)
+
+### Objective and conceptual framing
+
+The perturbation-based power analysis (TierP0) evaluates the ability to detect a discrete year-to-year change. However, many ecological changes of interest to NEON manifest as gradual directional trends that accumulate over multiple years. A site might experience a slow decline in native grass cover or a progressive increase in woody encroachment that is undetectable in any single year-to-year comparison but becomes apparent over a longer observation window. The trend detection analysis addresses this complementary question: what level of spatial replication is required to detect a directional trend in species cover across a multi-year observation window?
+
+This question was identified as a priority by the NEON Technical Working Group during the 2018 design optimization effort (Barnett et al. 2018) but could not be addressed at that time due to limited temporal replication. With 8--12 years of data now available at most NEON sites, the question becomes tractable.
+
+
+### Moving-window framework
+
+Trend detection was evaluated using a moving-window approach (Urquhart et al. 1998). Rather than fitting a single trend line through the entire time series, we applied overlapping windows of fixed width $W$ that slide across the available years. This approach reflects realistic monitoring practice: an analyst examining NEON data in any given year would assess the most recent $W$ years to determine whether a trend is present. It also accommodates the possibility that trend strength varies across the observation period.
+
+For each site, we evaluated window widths of $W \in \{5, 10\}$ years. Years with fewer than five plots sampled (notably 2020 at many sites due to COVID-related disruptions) were excluded from window construction but contributed to the GJAM model fit. Within each window, a trend was quantified as the ordinary least-squares slope of species cover against year, computed from posterior predictive draws averaged across $K$ independently sampled plots per year. This yields a posterior distribution of slope estimates for each species, window position, and sample size.
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- Conceptual figure: moving window illustration showing overlapping 5-year and 10-year windows sliding across a 10-year time series -->
+
+
+### Sensitivity analysis A: baseline trend detectability
+
+The first component of the trend analysis evaluates the detectability of trends that are already present in the observed data. For each species, window position, and sample size $K$, we computed the posterior probability that the absolute slope exceeded a biologically meaningful threshold:
+
+$$
+P\left(|\hat{\beta}_s| \ge \frac{\delta}{T}\right) \ge 0.80
+$$
+
+where $\delta = 0.20$ corresponds to a cumulative 20\% relative change over the window, $T$ is the actual calendar year span of the window (accounting for any gaps in the time series), and the threshold slope scales with the time horizon.
+
+For each year within a window, $K$ plots were independently sampled from that year's available plots. Different years may use different specific plots, reflecting a monitoring design where the same number of plots are sampled each year but not necessarily the same plots. This avoids the severe plot-continuity constraints that arise from requiring identical plots across all years of a window, which dramatically reduces testable sample sizes at sites affected by the COVID-2020 sampling gap.
+
+Sensitivity analysis A answers the question: given the trends already present at a site, how many plots would be needed to detect them with high probability?
+
+
+### Sensitivity analysis B: imposed trend detectability
+
+The second component evaluates the ability to detect a trend of known magnitude that may not be present in the observed data. This provides a prospective bound analogous to the TierP0 power analysis, but for gradual trends rather than abrupt changes. For each window, we imposed a linear trend of $\delta / T$ per year on the annual site means computed from the posterior predictive draws and then assessed whether the imposed trend was detectable at each sample size.
+
+The imposed trend was applied additively to the annual means:
+
+$$
+\bar{\mu}^{\text{trend}}_{t} = \bar{\mu}_{t} + \frac{\delta}{T} \cdot (t - t_0)
+$$
+
+where $t_0$ is the first year of the window. Detection was assessed using the same posterior probability criterion as Sensitivity A.
+
+Sensitivity analysis B answers the question: if a trend of the specified magnitude were to emerge at a site, how many plots would be required to detect it?
+
+An important finding from the detection-based analyses is that adding spatially heterogeneous plots can increase the year-to-year scatter of annual site means, making slope detection harder at higher $K$. This spatial dilution effect is ecologically real---more plots sample more habitat variation---but it means that detection-based power does not always increase monotonically with sample size for trend analysis, unlike for year-to-year change detection (TierP0). The SensA and SensB results should therefore be interpreted with this caveat.
+
+
+### Slope estimation stability
+
+To complement the detection-based analyses, we evaluated the stability of slope estimates as a function of sample size. This addresses the question: how many plots are needed for reliable trend estimation? Rather than asking whether a slope exceeds a threshold, the stability analysis asks whether the slope estimate converges as more plots are included.
+
+For each window and sample size $K$, the OLS slope was computed across $R$ Monte Carlo replicates, each using independently sampled plots per year. The coefficient of variation (CV) of the slope estimate across replicates measures how sensitive the trend estimate is to the specific plots selected:
+
+$$
+\text{CV}_s(K) = \frac{\text{SD}\left(\hat{\beta}_{s,1}, \ldots, \hat{\beta}_{s,R}\right)}{\left|\text{mean}\left(\hat{\beta}_{s,1}, \ldots, \hat{\beta}_{s,R}\right)\right|}
+$$
+
+At low $K$, slope estimates vary widely across plot resamples (high CV); at high $K$, they converge (low CV). The stability analysis does not suffer from the spatial dilution artifact because it measures precision of the estimate rather than its exceedance of a fixed threshold. More plots always provide a more representative sample of the site, reducing the sensitivity of the slope estimate to which specific plots were selected.
+
+Community-level stability was summarized as the percentage of species whose slope CV fell below a threshold (e.g., CV $< 0.50$ or CV $< 0.25$) at each sample size $K$, providing a direct analog to the TierP0 community power metric.
+
+
+### Scope and relationship to TierP0
+
+The TierP0 and TrendRun analyses address ecological change at different temporal scales. TierP0 quantifies the spatial replication required to detect an abrupt relative change between two time points, providing guidance relevant to monitoring for abrupt ecological shifts. TrendRun evaluates the spatial replication required for reliable trend estimation over multi-year windows, providing guidance relevant to tracking gradual directional changes.
+
+These analyses are complementary. The slope stability analysis from TrendRun directly parallels the TierP0 power curves: both ask how the quality of inference improves with additional plots. The stability analysis shows the $K$ at which trend estimates become reliable (low CV), while TierP0 shows the $K$ at which year-to-year changes become detectable (high power). Where both analyses converge on similar sample size requirements, the recommendation is strengthened.
+
+
+\section{\uppercase{Results}}
+
+We present results from four sites spanning the range of ecological complexity encountered across the NEON network: Harvard Forest (HARV, temperate deciduous forest), Konza Prairie (KONZ, tallgrass prairie), Great Smoky Mountains (GRSM, southern Appalachian forest), and Ordway-Swisher (OSBS, subtropical pine flatwoods). These sites were selected to represent contrasting levels of species richness, spatial heterogeneity, and ecosystem type. Following the site-level results, we present summary tables for all completed sites.
+
+
+\subsection{TierP0 results: perturbation-based power analysis}
+
+### Community-level power curves
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- fig:tierp0_power_curves — Power curves (pct species detectable vs K) for HARV, OSBS, KONZ, GRSM at effect sizes 15-30% -->
+
+At all four validation sites, community-level detection power increased monotonically with sample size at the focal effect size of $\delta = 0.20$ (20\% relative change). After applying the 3\% cover floor, the number of species included in the community metric ranged from 45 (HARV) to 55 (OSBS). The following table summarizes the percentage of species with power $\ge$ 0.80 at each sample size and effect level:
+
+<!-- TABLE PLACEHOLDER -->
+<!-- tab:tierp0_power_table — full power table from power_table_all_sites.csv -->
+
+At $\delta = 0.20$, all four sites crossed the 80\% community detection threshold between $K = 20$ and $K = 25$ plots: HARV at $K = 25$ (80\%), OSBS at $K = 20$ (83\%), KONZ at $K = 25$ (80\%), and GRSM at $K = 20$ (82\%). At $\delta = 0.15$ (15\% relative change), detection remained below 45\% even at $K = 30$, indicating that changes below 20\% are not reliably detectable at any sample size under the current framework. At $\delta = 0.25$, detection was nearly saturated ($>$90\%) at all sample sizes including $K = 5$.
+
+### Minimum detectable effect
+
+The MDE table shows the smallest relative effect at which 80\% community detection is achieved:
+
+<!-- TABLE PLACEHOLDER -->
+<!-- tab:tierp0_mde — MDE table from mde_equiv_table_tierp0.csv -->
+
+All four sites showed MDE = 25\% at $K \le 15$ and MDE = 20\% at $K = 20$--25, indicating that the transition from ``hard to detect'' to ``reliably detectable'' occurs consistently at 20--25 plots across ecologically diverse sites.
+
+### Year-to-year stability
+
+Detection power was stable across baseline years within each site. At $\delta = 0.20$ and $K = 20$, the standard deviation of community detection across years was 0--2.4 percentage points (KONZ: 0\%, HARV: 1.8\%, GRSM: 2.2\%, OSBS: 2.4\%). This stability confirms that the paired counterfactual design successfully eliminates year-to-year confounds and that results are not driven by individual baseline years.
+
+
+\subsection{TrendRun results: multi-year trend analysis}
+
+### Slope estimation stability (primary result)
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- fig:trendrun_stability — Slope CV vs K for HARV, showing monotonic decrease -->
+
+The slope stability analysis showed that trend estimates became progressively more reliable as sample size increased. At HARV, the median coefficient of variation (CV) of species-level slope estimates decreased monotonically from 1.51 at $K = 5$ to 0.50 at $K = 20$ and 0.33 at $K = 25$ for 5-year windows. The percentage of species with stable slope estimates (CV $< 0.25$) increased from 5\% at $K = 5$ to 25\% at $K = 20$ and 38\% at $K = 25$.
+
+Ten-year windows showed better stability at every $K$ than 5-year windows, consistent with the expectation that longer time series provide more robust slope estimates.
+
+<!-- TABLE PLACEHOLDER -->
+<!-- tab:trendrun_stability — Stability CV table from stability_cv_table.csv -->
+
+These results complement the TierP0 findings: both analyses identify $K = 20$--25 as the sample size at which inference quality transitions from unreliable to adequate, albeit through different metrics (detection power vs.\ estimation precision).
+
+
+### Imposed trend detectability (supplementary)
+
+<!-- FIGURE PLACEHOLDER -->
+<!-- fig:trendrun_sensB — Community detection by K and imposed trend at HARV -->
+
+The detection-based trend analyses (SensA and SensB) showed a spatial dilution effect: at some sites, detection probability decreased rather than increased with additional plots. This occurs because adding spatially heterogeneous plots increases the year-to-year scatter of annual site means, making OLS slopes harder to distinguish from zero against a fixed threshold. This effect is ecologically real---more plots sample more habitat variation---and represents a fundamental difference between trend detection and year-to-year change detection.
+
+Alternative detection frameworks were evaluated, including a t-test approach that scales the detection criterion by the slope's standard error. While theoretically sound, this approach proved too conservative with the 5--10 time points available in NEON's current record (degrees of freedom = 3--8 for 5--10 year windows). The stability analysis was developed as a complementary metric that avoids the spatial dilution artifact while still providing actionable guidance on sample size requirements.
+
+<!-- TABLE PLACEHOLDER -->
+<!-- tab:trendrun_mde — MDE table from mde_table_annotated.csv (supplementary) -->
+
+
+### Plot continuity and the COVID-2020 gap
+
+<!-- TABLE PLACEHOLDER -->
+<!-- tab:plot_continuity — Plot continuity table from plot_continuity_table.csv -->
+
+The COVID-2020 sampling disruption reduced the number of plots sampled at many sites, creating continuity gaps that affect multi-year trend analysis. To address this, the TrendRun analysis samples plots independently for each year within a window, rather than requiring the same plots to be sampled in every year. This design reflects realistic monitoring conditions where plot availability may vary across years and avoids the dramatic reduction in testable sample sizes that occurs when strict plot continuity is required across COVID-affected windows.
+
+
+\section{\uppercase{Discussion}}
+
+### Complementary perspectives on sampling adequacy
+
+This analysis demonstrates that conclusions about required spatial replication depend on both the magnitude of ecological change and the temporal scale over which it is assessed. The perturbation-based power analysis (TierP0) quantifies the ability to detect a specified relative change in species cover between two time points, providing guidance relevant to monitoring for abrupt ecological shifts---invasive species establishment, disturbance events, or rapid phenological changes. The trend stability analysis (TrendRun) quantifies the number of plots required for reliable estimation of multi-year directional trends, providing guidance relevant to tracking gradual changes in community composition driven by climate, land use, or successional dynamics.
+
+Both analyses converge on a consistent recommendation: 20--25 plots are required for reliable ecological inference. TierP0 identifies this range as the sample size at which 80\% of species (above the 3\% cover floor) are detectable at a 20\% relative change. The TrendRun stability analysis identifies this range as the sample size at which slope estimates become stable (CV $< 0.50$ for most species). The convergence of these independent analyses---addressing different temporal scales through different statistical frameworks---strengthens confidence in the recommendation.
+
+
+### Per-species relative framework
+
+The use of per-species perturbation and detection thresholds scaled to each species' raw mean cover represents an important methodological choice. By imposing a 20\% relative change on every species (rather than a fixed absolute change), the analysis ensures that low-cover and high-cover species face equivalent proportional challenges. A species at 10\% mean cover receives a 2 percentage point perturbation against a 1 percentage point threshold; a species at 60\% cover receives 12 percentage points against 6. This scaling avoids the bias inherent in fixed absolute frameworks, where a given percentage-point change is ecologically trivial for dominant species but dramatic for subordinate ones.
+
+The 3\% cover floor reflects the practical limit of both field measurement precision (NEON records cover to the nearest 1\%) and model prediction reliability at low cover. Below this threshold, a 20\% relative change falls within the recording resolution of the field protocol.
+
+
+### Modeling framework and dimension reduction
+
+The use of GJAM as the underlying modeling framework enables joint inference across all species at a site, accounting for shared environmental responses and residual covariance among species. This represents a substantial methodological advance over the univariate mixed-effects models employed in the 2018 optimization analysis (Barnett et al. 2018), which treated each species independently and could not account for the coordinated responses that characterize plant communities.
+
+The dimension reduction framework (Taylor-Rodriguez et al. 2017) was essential for applying this approach across the full diversity gradient of NEON sites. Without reduction, the $S \times S$ covariance matrix cannot be estimated reliably when the number of species exceeds the effective sample size, a condition met at the majority of NEON sites. By representing the covariance through a reduced factor structure, the model captures the dominant modes of inter-species association while remaining computationally tractable at sites with hundreds of species.
+
+
+### Implications for NEON sampling design
+
+The results indicate that NEON's current design of 20--30 plots per site is well-calibrated for detecting 20\% relative changes in plant species cover and for producing stable trend estimates. At the four validation sites spanning temperate deciduous forest, tallgrass prairie, montane forest, and subtropical pine flatwoods, all sites crossed the 80\% community detection threshold at $K = 20$--25 for a 20\% relative effect, and all showed substantial improvement in slope estimation stability between $K = 15$ and $K = 25$.
+
+Changes below 15\% relative are not reliably detectable at any sample size under the current framework, establishing a practical floor on the ecological sensitivity of NEON's plot-based monitoring. Changes of 25\% or larger are detectable with as few as 5 plots, indicating that major ecological events (large-scale disturbance, rapid invasion) will be captured regardless of sampling intensity.
+
+
+### Addressing the 2018 trend detection question
+
+The 2018 design optimization effort identified trend detection as a priority question but determined that it could not be addressed with the limited temporal replication then available (Barnett et al. 2018). With 8--12 years of data now available at most sites, the moving-window trend analysis presented here directly addresses that outstanding question. The slope stability framework provides actionable guidance: 20--25 plots are sufficient for reliable trend estimation over 5--10 year windows, consistent with the year-to-year change detection results.
+
+The spatial dilution effect identified in the detection-based trend analyses---where adding spatially heterogeneous plots can reduce detection power against a fixed threshold---represents a genuine ecological finding about the challenge of site-level trend detection in heterogeneous landscapes. This effect does not invalidate the stability-based results but does caution against interpreting detection-based trend power curves in the same way as TierP0 power curves.
+
+
+### Limitations and future directions
+
+Several limitations of the current analysis warrant emphasis. First, the model is fit once per site using all available data, and posterior predictions are generated conditional on this single fit (single-fit design). The analysis does not propagate uncertainty arising from plot selection into the model fitting step, meaning that power estimates represent upper bounds on detection capability. The consistency of recommendations across four ecologically distinct validation sites and with the 2018 univariate analysis provides confidence that the directional findings---20--25 plots for reliable change detection and trend estimation---are robust, though the true sample size requirement may be somewhat higher.
+
+Second, the cover floor (3\% mean raw cover) excludes species whose changes fall below field measurement precision. At most sites, the majority of species fall below this threshold, meaning that the power and stability analyses characterize detection capability for the more abundant portion of the community.
+
+Third, multiple relative effect sizes (15--30\%) were tested, revealing that 20\% is the critical threshold where sample size determines detection capability. Sensitivity to alternative detection threshold values (currently 10\% of raw cover) was not systematically evaluated but could be addressed in future work.
+
+The analytical framework developed here is extensible in several directions. Longer NEON time series will enable evaluation of trend detection over wider windows and provide empirical validation of the power estimates. A limited refit analysis---refitting the GJAM model at selected sample sizes to quantify single-fit optimism---would provide calibration factors for adjusting the upper-bound estimates. Finally, the GJAM-based approach could be extended to other NEON observation systems where multivariate community data are collected, including small mammals, ground beetles, and soil microorganisms.
+
+
+\section{\uppercase{References}}
+Keller, M., D. S. Schimel, W. W. Hargrove, and F. M. Hoffman. 2008. A continental strategy for the National Ecological Observatory Network. Frontiers in Ecology and the Environment 6:282-284. 
+
+Claire Lunch, Christine Laney, Nathan Mietkiewicz, Eric Sokol, Kaelin Cawley and NEON (National Ecological Observatory Network) (2024). neonUtilities: Utilities for Working with NEON Data. R package version 2.4.3. https://doi.org/10.32614/CRAN.package.neonUtilities
+
+Barnett, D. T., P. A. Duffy, D. S. Schimel, R. E. Krauss, E. I. Azuaje, K. M. Irvine, F. W. Davis, A. E. Gelfand, A. S. Thorpe, D. Gudex-Cross, J. M.   \hangindent= 1cm
+McKay, J. T. McCorkel and C. L. Meier. The terrestrial and organism and biogeochemistry spatial sampling design for the National Ecological             Observatory Network. Ecosphere. 
+
+Bolker, M. B., M. E. Brooks, C. J. Clark, S. W. Geange, J. R. Poulsen, M. H. H. Stevens, J. S. White. 2008. Generalized linear mixed models: a practical \hangindent= 1cm
+guide for ecology and evolution. Trends in Ecology and Evolution 24(3):127-136. 
+
+Chao, A., Gotelli, N.J., et al., 2014. Rarefaction and extrapolation with Hill numbers: A framework for sampling and estimation in species diversity \hangindent= 1cm
+studies. Ecological Monographs, 84(1), pp.45-67.
+
+Chao, A. et al., 2015. Unveiling the species-rank abundance distribution by generalizing the Good-Turing sample coverage theory. Ecology, 96(5), \hangindent= 1cm
+pp.1189-1201.
+
+Colwell, R.K. & Coddington, J.A., 1994. Estimating Terrestrial Biodiversity through Extrapolation. Philosophical Transactions of the Royal Society of \hangindent= 1cm
+London. Series B: Biological Sciences, 345(1311), pp.101-118. 
+
+Colwell, R.K. et al., 2012. Models and estimators linking individual-based and sample-based rarefaction, extrapolation and comparison of assemblages. \hangindent= 1cm
+Journal of Plant Ecology, 5(1), pp.3-21.
+
+Crowley, P. H. 1992. Resampling methods for computation-intensive data analysis in ecology and evolution. Annual Review of Systematics, 23:405-447.
+\hangindent= 1cm
+
+Elmendorf, S. C., K. D. Jones, B.I . Cook, J. M. Diez, C. A. F. Enquist, M.O. Jones, R. A. Hufft, S. J. Mazer, A. J. Miller-Rushing, D. Moore, M. D. \hangindent= 1cm
+Schwartz, and J. F. Weltzin. 2016. The Plant Phenology sampling design for the National Ecological Observatory Network. Ecosphere. 7(4):e01303. 10.1002/ecs2.1303.
+
+Gotelli, N.J. & Colwell, R.K., 2001. Quantifyinf biodiversity: procedures and pitfalls in the measurement and comparison of species richness. Ecology \hangindent= 1cm
+Letters, 4 Abstract(4), pp.379-391. 
+
+Gotelli, Nicholas J.; Colwell, R.K., 2011. Estimating species richness. In B. J. Magurran, Anne E.; McGill, ed. Biological diversity frontiers in \hangindent= 1cm
+measurement and assessment. Oxford University Press, pp. 39-54. 
+
+Hinckley, E. S., G. B. Bonan, G. J. Bowen, B. P. Colman, P. A. Duffy, C. L. Goodale, B. Z. Houlton, E. Marin-Spiotta, K. Ogle, S. V. Ollinger, E. A. \hangindent= 1cm
+Paul, P. M. Vitousek, K. C. Weathers, and D. G. Williams. 2016. The soil and plant biogeochemistry sampling design for The National Ecological Observatory Network Ecosphere. 7(3):e01234.
+
+Hsieh, T.C., Ma, K.H. & Chao, A., 2016. iNEXT: an R package for rarefaction and extrapolation of species diversity (Hill numbers). Methods in Ecology \hangindent= 1cm
+and Evolution, 7, pp.1451-1456.
+
+Kain, M. P., Bolker, B. M., M. W. McCoy. 2015. A practical guide and power analysis for GLMMs: detecting among treatment variation in random effects. \hangindent= 1cm
+PeerJ 3:e1226; DOI 10.7717/peerj.1226.
+
+Kao, R. H., C. M. Gibson, R. E. Gallery, C. L. Meier, D. T. Barnett, K. M. Docherty, K. K. Blevins, P. D. Travers, A. Azuaje, Y. P. Springer, K. M. \hangindent= 1cm
+Thibault, V. J. McKenzie, M. Keller, L. F. Alves, E. S. Hinckley, J. Parnell, and D. Schimel. 2012. NEON terrestrial field observations: designing continental-scale, standardized sampling. Ecosphere 3(12):1-17.
+
+Keller, M., D. S. Schimel, W. W. Hargrove, and F. M. Hoffman. 2008. A continental strategy for the national ecological observatory network. Frontiers in \hangindent= 1cmEcology and Environment 6:282-284.
+
+Meier, C. L, K. M. Thibault, and D. T. Barnett. 2023. Spatial and temporal sampling strategy connecting NEON Terrestrial Observation System protocols. \hangindent= 1cm
+Ecosphere 14(3):e4455. https://doi.org/10.1002/ecs2.4455
+
+Peet, R. K., T. R. Wentworth, and P. S. White. 1998. A flexible, multipurpose method for recording vegetation composition and structure. Castanea \hangindent= 1cm63(3):262-274.
+
+Ogle, K., and J. F. Reynolds. 2004. Plant responses to precipitation in desert ecosystems: integrating functional types, pulses, thresholds, and delays. \hangindent= 1cm
+Oecologia 141:282:294.
+
+Schimel, D., M. Keller, S. Berukoff, R. Kao, H. Loescher, H. Powell, T. Kampe, D. Moore, W. Gram, D. Barnett, R. Gallery, C. Gibson, K. Goodman, C. \hangindent= 1cm
+Meier, S. Parker, L. Pitelka, Y. Springer, K. Thibault, and R. Utz. 2011. 2011 science strategy: Enabling continental-scale ecological forecasting.
+
+Shmida, A. 1984. Whittaker's plant diversity sampling method. Israel Journal of Botany 33:41-46.
+
+Stohlgren, T. J., M. B. Falkner, and L. D. Schell. 1995. A modified-Whittaker nested vegetation sampling method. Vegetatio 117:113-121.
+\hangindent= 1cm
+
+Thompson, S. K. 2012. Sampling. Third edition. Wiley, New Jersey, USA.
+
+Thorpe, A. S., D. T. Barnett, S. C. Elmendorf, E.-L. S. Hinckley, D. Hoekman, K. D. Jones, K. E. LeVan, C. L. Meier, L. F. Stanish, and K. M. Thibault. \hangindent= 1cm
+2016. Introduction to the sampling designs of the National Ecological Observatory Network Terrestrial Observation System. Ecosphere 7(12):e01627. 10.1002/ecs2.1627
+
+USDA, NRCS. 2016. The PLANTS Database (http://plants.usda.gov, 23 January 2016). National Plant Data Team, Greensboro, NC 27401-4901 US.
+
+Zuur A.F., Ieno E.N., Walker Saveliev A.A., Smith N.J., G.M. (2009) Mixed effects models and extensions in ecology with R. Statistics for Biology and \hangindent= 1cm
+Health. Springer, New York, NY.
+
+Clark, J. S., D. Nemergut, B. Seyednasrollah, P. J. Turner, and S. Zhang. 2017. Generalized joint attribute modeling for biodiversity analysis: \hangindent= 1cm
+median-zero, multivariate, multifarious data. Ecological Monographs 87:34--56.
+
+Taylor-Rodriguez, D., K. Kaufeld, E. M. Schliep, J. S. Clark, and A. E. Gelfand. 2017. Joint species distribution modeling: dimension reduction using \hangindent= 1cm
+Dirichlet processes. Bayesian Analysis 12:939--967.
+
+Urquhart, N. S., S. G. Paulsen, and D. P. Larsen. 1998. Monitoring for policy-relevant regional trends over time. Ecological Applications 8:246--257.
+\hangindent= 1cm
+
+NEON (National Ecological Observatory Network). Plant presence and percent cover (DP1.10058.001), RELEASE-2025. https://doi.org/10.48443/zp67-s364. Dataset \hangindent= 1cm
+accessed from https://data.neonscience.org/data-products/DP1.10058.001/RELEASE-2025 on January 3, 2026.

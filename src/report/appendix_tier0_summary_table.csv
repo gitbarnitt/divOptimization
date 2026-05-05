@@ -1,0 +1,47 @@
+"Domain","Site","Site Code","K_star","detection_K30","n_species_filtered"
+"D01","Bartlett Experimental Forest","BART",5,57.1,7
+"D01","Harvard Forest & Quabbin Watershed","HARV",25,83,47
+"D02","Blandy Experimental Farm","BLAN",NA,NA,30
+"D02","Smithsonian Conservation Biology Institute","SCBI",30,81,58
+"D02","Smithsonian Environmental Research Center","SERC",10,77.1,35
+"D03","Disney Wilderness Preserve","DSNY",20,91.3,92
+"D03","The Jones Center At Ichauway","JERC",10,94.3,122
+"D03","Ordway-Swisher Biological Station","OSBS",20,94.4,54
+"D04","Guánica Forest","GUAN",NA,NA,77
+"D04","Lajas Experimental Station","LAJA",NA,63.9,83
+"D05","Steigerwaldt-Chequamegon","STEI",15,88.7,71
+"D05","Treehaven","TREE",NA,NA,49
+"D05","University of Notre Dame Environmental Research Center","UNDE",15,90.9,44
+"D06","Konza Prairie Agroecosystem","KONA",NA,66.7,9
+"D06","Konza Prairie Biological Station","KONZ",25,88.5,52
+"D06","University of Kansas Field Station","UKFS",30,82.4,68
+"D07","Great Smoky Mountains National Park","GRSM",20,89.4,47
+"D07","Mountain Lake Biological Station","MLBS",NA,77.1,48
+"D07","Oak Ridge","ORNL",20,92.2,64
+"D08","Lenoir Landing","LENO",15,90.9,33
+"D08","Talladega National Forest","TALL",10,93.8,64
+"D09","Dakota Coteau Field Site","DCFS",NA,69.4,36
+"D09","Northern Great Plains Research Laboratory","NOGP",25,83.7,49
+"D09","Chase Lake National Wildlife Refuge","WOOD",25,86.7,45
+"D10","Central Plains Experimental Range","CPER",NA,68.2,22
+"D10","Rocky Mountains","RMNP",30,84.2,19
+"D10","North Sterling","STER",NA,NA,16
+"D11","Lyndon B. Johnson National Grassland","CLBJ",15,95.2,63
+"D11","Marvin Klemme Range Research Station","OAES",20,87.2,47
+"D12","Yellowstone National Park","YELL",NA,NA,29
+"D13","Moab","MOAB",15,100,4
+"D13","Niwot Ridge","NIWO",25,86.7,30
+"D14","Jornada Experimental Range","JORN",20,80,5
+"D14","Santa Rita Experimental Range","SRER",10,89.5,38
+"D15","Onaqui","ONAQ",20,88.9,9
+"D16","Abby Road","ABBY",25,90.7,43
+"D16","Wind River Experimental Forest","WREF",30,82.6,23
+"D17","San Joaquin Experimental Range","SJER",30,90,40
+"D17","Soaproot Saddle","SOAP",15,91.3,46
+"D17","Lower Teakettle","TEAK",NA,NA,29
+"D18","Utqiaġvik","BARR",NA,70,10
+"D18","Toolik Field Station","TOOL",NA,47.4,19
+"D19","Caribou-Poker Creeks Research Watershed","BONA",NA,73.1,26
+"D19","Delta Junction","DEJU",NA,70.8,24
+"D19","Healy","HEAL",NA,66.7,36
+"D20","Pu'u Maka'ala Natural Area Reserve","PUUM",NA,NA,20

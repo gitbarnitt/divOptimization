@@ -1,0 +1,9 @@
+table,canonical,mapped_from,status
+species_summary,site,site,mapped/ok
+species_summary,species,species,mapped/ok
+species_summary,mean_detection,mean_detection,mapped/ok
+species_summary,sample_size,sample_size,mapped/ok
+species_summary,year_pair,year_pair,mapped/ok
+species_summary,year_baseline,year_baseline,mapped/ok
+species_summary,year_changed,year_changed,mapped/ok
+species_summary,replicate,replicate,mapped/ok
